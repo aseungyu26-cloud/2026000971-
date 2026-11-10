@@ -3,806 +3,1264 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>심플 게시판 | Simple Board</title>
+    <title>다중 공간 게시판 시스템</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link
-      rel="stylesheet"
-      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css"
-    />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
     <script>
       tailwind.config = {
-        theme: {
-          extend: {
-            fontFamily: {
-              sans: [
-                'Pretendard',
-                '-apple-system',
-                'BlinkMacSystemFont',
-                'Apple SD Gothic Neo',
-                'Malgun Gothic',
-                'sans-serif',
-              ],
-            },
-          },
-        },
+        theme: { extend: { fontFamily: { sans: ['Pretendard', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'] } } },
       };
     </script>
+    <style>
+      .sidebar-scroll::-webkit-scrollbar { width: 4px; }
+      .sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
+      .sidebar-scroll::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 2px; }
+    </style>
   </head>
-  <body class="min-h-screen bg-slate-50 text-slate-800 antialiased selection:bg-indigo-100 selection:text-indigo-700">
-    <!-- 상단 헤더 -->
-    <header class="sticky top-0 z-20 border-b border-slate-200/80 bg-white/85 backdrop-blur-md">
-      <div class="mx-auto flex max-w-5xl items-center justify-between px-4 py-4 sm:px-6">
-        <div class="flex items-center gap-3">
-          <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-sm shadow-indigo-200">
-            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"
-              />
+  <body class="min-h-screen bg-slate-100 font-sans text-slate-800 antialiased">
+
+    <!-- ════════ 헤더 ════════ -->
+    <header class="sticky top-0 z-30 border-b border-slate-200/80 bg-white/90 backdrop-blur-md shadow-sm">
+      <div class="flex h-14 items-center gap-3 px-4 sm:px-5">
+        <!-- 모바일 햄버거 -->
+        <button id="sidebarToggleBtn" class="shrink-0 rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 lg:hidden" aria-label="사이드바">
+          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
+          </svg>
+        </button>
+        <!-- 로고 -->
+        <div class="flex items-center gap-2 shrink-0">
+          <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-600 text-white shadow-sm shadow-violet-200">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
             </svg>
           </div>
-          <div>
-            <div class="flex items-center gap-2">
-              <h1 class="text-lg font-bold tracking-tight text-slate-900">심플 게시판</h1>
-              <span class="rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-semibold text-indigo-600">
-                In-Memory
-              </span>
-            </div>
-            <p class="text-xs text-slate-500">서버 메모리에 임시 저장되는 Express CRUD 게시판</p>
-          </div>
+          <span class="text-sm font-bold tracking-tight text-slate-900 sm:text-base">멀티스페이스 게시판</span>
         </div>
-
-        <div class="flex items-center gap-2">
-          <span
-            id="postCountBadge"
-            class="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-100/80 px-3 py-1 text-xs font-semibold text-slate-700"
-          >
-            전체 <span id="totalCount" class="text-indigo-600">0</span>개
-          </span>
+        <!-- 브레드크럼 -->
+        <div id="breadcrumb" class="hidden min-w-0 flex-1 items-center gap-1.5 text-xs text-slate-500 sm:flex">
+          <span id="bcSpace" class="hidden max-w-[120px] truncate font-medium text-slate-700"></span>
+          <svg id="bcArrow" class="hidden h-3.5 w-3.5 shrink-0 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+          </svg>
+          <span id="bcBoard" class="hidden max-w-[120px] truncate font-medium text-violet-600"></span>
+        </div>
+        <div class="flex-1 sm:hidden"></div>
+        <!-- 우측 사용자/로그인 -->
+        <div class="flex shrink-0 items-center gap-2">
+          <div id="userBadge" class="hidden items-center gap-1.5">
+            <span id="userRolePill" class="hidden rounded-full px-2 py-0.5 text-[11px] font-bold"></span>
+            <span id="userNameText" class="hidden text-xs font-semibold text-slate-700 sm:block"></span>
+          </div>
+          <button id="loginOpenBtn" class="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50">
+            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
+            </svg>
+            로그인
+          </button>
+          <button id="logoutBtn" class="hidden items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50">로그아웃</button>
         </div>
       </div>
     </header>
 
-    <!-- 메인 컨텐츠 -->
-    <main class="mx-auto max-w-5xl px-4 py-8 sm:px-6">
-      <div class="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
-        <!-- 좌측: 새 글 작성 폼 -->
-        <section class="lg:sticky lg:top-24 lg:col-span-4">
-          <div class="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm">
-            <div class="mb-5">
-              <h2 class="text-base font-bold text-slate-900">새 글 작성</h2>
-              <p class="mt-0.5 text-xs text-slate-500">제목과 내용을 입력해 바로 글을 남겨보세요.</p>
-            </div>
+    <!-- ════════ 레이아웃 ════════ -->
+    <div class="flex" style="min-height:calc(100vh - 56px)">
+      <!-- 모바일 오버레이 -->
+      <div id="sidebarOverlay" class="fixed inset-0 z-20 hidden bg-slate-900/40 backdrop-blur-sm lg:hidden"></div>
 
-            <form id="createForm" class="space-y-4">
-              <div>
-                <label for="authorInput" class="mb-1.5 block text-xs font-semibold text-slate-700">
-                  작성자
-                </label>
-                <input
-                  id="authorInput"
-                  type="text"
-                  maxlength="30"
-                  placeholder="익명 (비워두면 익명으로 등록)"
-                  class="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/15"
-                />
-              </div>
-
-              <div>
-                <label for="titleInput" class="mb-1.5 block text-xs font-semibold text-slate-700">
-                  제목 <span class="text-rose-500">*</span>
-                </label>
-                <input
-                  id="titleInput"
-                  type="text"
-                  maxlength="100"
-                  required
-                  placeholder="제목을 입력하세요"
-                  class="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/15"
-                />
-              </div>
-
-              <div>
-                <div class="mb-1.5 flex items-center justify-between">
-                  <label for="contentInput" class="block text-xs font-semibold text-slate-700">
-                    내용 <span class="text-rose-500">*</span>
-                  </label>
-                  <span id="contentCount" class="text-[11px] text-slate-400">0 / 5000</span>
-                </div>
-                <textarea
-                  id="contentInput"
-                  rows="5"
-                  maxlength="5000"
-                  required
-                  placeholder="내용을 자유롭게 작성하세요..."
-                  class="w-full resize-y rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2.5 text-sm leading-relaxed text-slate-900 placeholder-slate-400 transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/15"
-                ></textarea>
-              </div>
-
-              <button
-                id="submitBtn"
-                type="submit"
-                class="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-indigo-200 transition hover:bg-indigo-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
-                </svg>
-                <span>글 등록하기</span>
-              </button>
-            </form>
-          </div>
-        </section>
-
-        <!-- 우측: 게시글 목록 -->
-        <section class="lg:col-span-8">
-          <!-- 검색 및 새로고침 바 -->
-          <div class="mb-4 flex flex-col gap-2.5 sm:flex-row sm:items-center">
-            <div class="relative flex-1">
-              <svg
-                class="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
-              <input
-                id="searchInput"
-                type="text"
-                placeholder="제목, 내용, 작성자로 검색..."
-                class="w-full rounded-xl border border-slate-200/80 bg-white py-2.5 pl-10 pr-9 text-sm text-slate-800 placeholder-slate-400 shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/15"
-              />
-              <button
-                id="clearSearchBtn"
-                type="button"
-                aria-label="검색어 지우기"
-                class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-              >
-                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            <button
-              id="refreshBtn"
-              type="button"
-              class="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-200/80 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 active:scale-[0.99]"
-            >
-              <svg class="h-4 w-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                />
-              </svg>
-              <span>새로고침</span>
-            </button>
-          </div>
-
-          <!-- 게시글 리스트 -->
-          <div id="postList" class="space-y-3"></div>
-        </section>
-      </div>
-    </main>
-
-    <!-- 게시글 상세 / 수정 모달 -->
-    <div
-      id="postModal"
-      class="fixed inset-0 z-40 hidden items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm"
-      role="dialog"
-      aria-modal="true"
-    >
-      <div class="w-full max-w-lg overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
-        <!-- 모달 헤더 -->
-        <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-          <div class="flex items-center gap-2">
-            <span id="modalPostIdBadge" class="rounded-md bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-indigo-600">
-              #1
-            </span>
-            <h3 id="modalHeaderTitle" class="text-sm font-bold text-slate-900">게시글 상세</h3>
-          </div>
-          <button
-            id="closePostModalBtn"
-            type="button"
-            aria-label="모달 닫기"
-            class="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
-          >
-            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+      <!-- ═══ 사이드바 ═══ -->
+      <aside id="sidebar" class="fixed left-0 top-14 z-20 flex h-[calc(100vh-56px)] w-64 -translate-x-full flex-col border-r border-slate-200 bg-white transition-transform duration-200 lg:static lg:translate-x-0 lg:shrink-0">
+        <!-- 헤더 -->
+        <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+          <span class="text-[11px] font-bold uppercase tracking-widest text-slate-400">운영 공간</span>
+          <button id="addSpaceBtn" title="새 공간 추가 (superadmin)" class="hidden h-6 w-6 items-center justify-center rounded-md bg-violet-50 text-violet-600 transition hover:bg-violet-100">
+            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
             </svg>
           </button>
         </div>
+        <!-- 공간 트리 -->
+        <nav id="spaceNav" class="sidebar-scroll flex-1 overflow-y-auto py-2 px-2 space-y-0.5"></nav>
+        <!-- 하단 힌트 -->
+        <div class="border-t border-slate-100 px-4 py-3">
+          <p class="text-[11px] leading-relaxed text-slate-400">공간 → 게시판 순으로 선택하세요.</p>
+        </div>
+      </aside>
 
-        <!-- 상세 보기 영역 -->
-        <div id="modalViewBody" class="px-6 py-5">
-          <h4 id="viewTitle" class="text-lg font-bold leading-snug text-slate-900 break-words"></h4>
-          <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
-            <span id="viewAuthor" class="font-medium text-slate-700"></span>
-            <span>·</span>
-            <span id="viewDate"></span>
-            <span id="viewEditedBadge" class="hidden rounded bg-slate-100 px-1.5 py-0.5 text-[11px] text-slate-500">
-              수정됨
-            </span>
-          </div>
-          <div class="mt-4 max-h-80 overflow-y-auto rounded-xl bg-slate-50 p-4">
-            <p id="viewContent" class="whitespace-pre-wrap break-words text-sm leading-relaxed text-slate-700"></p>
-          </div>
+      <!-- ═══ 메인 ═══ -->
+      <main class="flex-1 min-w-0 overflow-y-auto">
 
-          <div class="mt-5 flex items-center justify-between gap-2">
-            <button
-              id="modalDeleteBtn"
-              type="button"
-              class="rounded-xl px-3.5 py-2 text-xs font-semibold text-rose-600 transition hover:bg-rose-50"
-            >
-              삭제
-            </button>
-            <div class="flex items-center gap-2">
-              <button
-                id="modalSwitchEditBtn"
-                type="button"
-                class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
-              >
-                수정하기
-              </button>
-              <button
-                id="modalViewCloseBtn"
-                type="button"
-                class="rounded-xl bg-slate-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-slate-800"
-              >
-                닫기
-              </button>
+        <!-- 환영 화면 -->
+        <div id="welcomeView" class="flex h-full flex-col items-center justify-center gap-4 py-20 text-center px-4">
+          <div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-violet-50 text-violet-400">
+            <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+            </svg>
+          </div>
+          <div>
+            <h2 class="text-xl font-bold text-slate-800">다중 공간 게시판 시스템</h2>
+            <p class="mt-1 text-sm text-slate-500">왼쪽 사이드바에서 공간을 선택하면 게시판 목록이 나타납니다.</p>
+          </div>
+          <div class="mt-2 grid grid-cols-3 gap-3 text-xs text-slate-500">
+            <div class="rounded-xl bg-white p-3 shadow-sm border border-slate-200/80">
+              <div class="text-lg font-bold text-violet-600">Space</div>
+              <div>운영 공간</div>
+            </div>
+            <div class="rounded-xl bg-white p-3 shadow-sm border border-slate-200/80">
+              <div class="text-lg font-bold text-indigo-600">Board</div>
+              <div>게시판</div>
+            </div>
+            <div class="rounded-xl bg-white p-3 shadow-sm border border-slate-200/80">
+              <div class="text-lg font-bold text-sky-600">Post</div>
+              <div>게시글·댓글</div>
             </div>
           </div>
         </div>
 
-        <!-- 수정 폼 영역 -->
-        <form id="modalEditForm" class="hidden space-y-4 px-6 py-5">
-          <div>
-            <label for="editAuthorInput" class="mb-1.5 block text-xs font-semibold text-slate-700">
-              작성자
-            </label>
-            <input
-              id="editAuthorInput"
-              type="text"
-              maxlength="30"
-              placeholder="익명"
-              class="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2 text-sm text-slate-900 focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/15"
-            />
+        <!-- 공간 개요 -->
+        <div id="spaceView" class="hidden p-5 sm:p-7 max-w-4xl mx-auto">
+          <!-- 공간 헤더 -->
+          <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div class="min-w-0">
+              <div class="flex flex-wrap items-center gap-2">
+                <h2 id="spaceViewName" class="text-2xl font-bold text-slate-900"></h2>
+                <span id="spacePrivateBadge" class="hidden items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-bold text-slate-500">
+                  <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                  비공개
+                </span>
+              </div>
+              <p id="spaceViewDesc" class="mt-1 text-sm text-slate-500"></p>
+            </div>
+            <div class="flex shrink-0 items-center gap-2">
+              <button id="manageOperatorsBtn" class="hidden items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50">
+                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                운영자 관리
+              </button>
+              <button id="deleteSpaceBtn" class="hidden items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2 text-xs font-semibold text-rose-600 transition hover:bg-rose-100">
+                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                공간 삭제
+              </button>
+            </div>
           </div>
-          <div>
-            <label for="editTitleInput" class="mb-1.5 block text-xs font-semibold text-slate-700">
-              제목 <span class="text-rose-500">*</span>
-            </label>
-            <input
-              id="editTitleInput"
-              type="text"
-              maxlength="100"
-              required
-              class="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2 text-sm text-slate-900 focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/15"
-            />
+
+          <!-- 운영자 목록 -->
+          <div class="mb-5 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
+            <h3 class="mb-3 text-xs font-bold uppercase tracking-widest text-slate-400">운영자</h3>
+            <div id="operatorsList" class="flex flex-wrap gap-2"></div>
           </div>
-          <div>
-            <label for="editContentInput" class="mb-1.5 block text-xs font-semibold text-slate-700">
-              내용 <span class="text-rose-500">*</span>
-            </label>
-            <textarea
-              id="editContentInput"
-              rows="5"
-              maxlength="5000"
-              required
-              class="w-full resize-y rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2 text-sm leading-relaxed text-slate-900 focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/15"
-            ></textarea>
-          </div>
-          <div class="flex items-center justify-end gap-2 pt-1">
-            <button
-              id="modalCancelEditBtn"
-              type="button"
-              class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
-            >
-              취소
+
+          <!-- 게시판 그리드 -->
+          <div class="mb-3 flex items-center justify-between">
+            <h3 class="text-sm font-bold text-slate-700">게시판 목록</h3>
+            <button id="spaceAddBoardBtn" class="hidden items-center gap-1.5 rounded-xl bg-violet-600 px-3.5 py-2 text-xs font-semibold text-white shadow-sm shadow-violet-200 transition hover:bg-violet-700">
+              <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+              게시판 추가
             </button>
-            <button
-              id="modalSaveEditBtn"
-              type="submit"
-              class="rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-60"
-            >
-              저장하기
+          </div>
+          <div id="spaceViewBoards" class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"></div>
+        </div>
+
+        <!-- 게시판 뷰 -->
+        <div id="boardView" class="hidden p-4 sm:p-6 max-w-5xl mx-auto">
+          <!-- 게시판 헤더 -->
+          <div class="mb-5 flex items-start justify-between gap-3">
+            <div>
+              <div class="flex flex-wrap items-center gap-2">
+                <h2 id="boardViewName" class="text-xl font-bold text-slate-900"></h2>
+                <span id="boardPostCountBadge" class="rounded-full bg-violet-50 px-2 py-0.5 text-xs font-semibold text-violet-600">0개</span>
+              </div>
+              <p id="boardViewDesc" class="mt-0.5 text-sm text-slate-500"></p>
+            </div>
+            <button id="boardDeleteBtn" class="hidden shrink-0 items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2 text-xs font-semibold text-rose-600 transition hover:bg-rose-100">
+              <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+              게시판 삭제
             </button>
+          </div>
+
+          <!-- 2열 그리드 -->
+          <div class="grid grid-cols-1 items-start gap-5 lg:grid-cols-12">
+            <!-- 작성 폼 -->
+            <section class="lg:sticky lg:top-20 lg:col-span-4">
+              <div class="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
+                <h3 class="mb-4 text-sm font-bold text-slate-900">새 글 작성</h3>
+                <form id="createPostForm" class="space-y-3">
+                  <div>
+                    <label class="mb-1 block text-xs font-semibold text-slate-700">작성자</label>
+                    <input id="postAuthorInput" type="text" maxlength="30" placeholder="익명"
+                      class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm placeholder-slate-400 transition focus:border-violet-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-violet-500/15"/>
+                  </div>
+                  <div>
+                    <label class="mb-1 block text-xs font-semibold text-slate-700">제목 <span class="text-rose-500">*</span></label>
+                    <input id="postTitleInput" type="text" maxlength="100" required placeholder="제목을 입력하세요"
+                      class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm placeholder-slate-400 transition focus:border-violet-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-violet-500/15"/>
+                  </div>
+                  <div>
+                    <div class="mb-1 flex items-center justify-between">
+                      <label class="text-xs font-semibold text-slate-700">내용 <span class="text-rose-500">*</span></label>
+                      <span id="postContentCount" class="text-[11px] text-slate-400">0 / 5000</span>
+                    </div>
+                    <textarea id="postContentInput" rows="5" maxlength="5000" required placeholder="내용을 입력하세요..."
+                      class="w-full resize-y rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm leading-relaxed placeholder-slate-400 transition focus:border-violet-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-violet-500/15"></textarea>
+                  </div>
+                  <button id="createPostBtn" type="submit"
+                    class="flex w-full items-center justify-center gap-1.5 rounded-xl bg-violet-600 py-2.5 text-sm font-semibold text-white shadow-sm shadow-violet-200 transition hover:bg-violet-700 active:scale-[0.99] disabled:opacity-60">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                    글 등록하기
+                  </button>
+                </form>
+              </div>
+            </section>
+
+            <!-- 게시글 목록 -->
+            <section class="lg:col-span-8">
+              <div class="mb-3 flex gap-2">
+                <div class="relative flex-1">
+                  <svg class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                  </svg>
+                  <input id="searchInput" type="text" placeholder="제목, 내용, 작성자 검색..."
+                    class="w-full rounded-xl border border-slate-200/80 bg-white py-2.5 pl-9 pr-8 text-sm placeholder-slate-400 shadow-sm transition focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/15"/>
+                  <button id="clearSearchBtn" class="absolute right-2.5 top-1/2 hidden -translate-y-1/2 rounded p-0.5 text-slate-400 hover:text-slate-600">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                  </button>
+                </div>
+                <button id="refreshPostsBtn" class="flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-white px-3.5 py-2.5 text-xs font-medium text-slate-600 shadow-sm transition hover:bg-slate-50 active:scale-[0.98]">
+                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                  새로고침
+                </button>
+              </div>
+              <div id="postList" class="space-y-3"></div>
+            </section>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- ════════ 모달: 로그인 ════════ -->
+    <div id="loginModal" class="modal-backdrop fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm" role="dialog" aria-modal="true">
+      <div class="w-full max-w-sm rounded-2xl border border-slate-200 bg-white shadow-xl">
+        <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+          <h3 class="text-sm font-bold text-slate-900">로그인</h3>
+          <button class="modal-close rounded-lg p-1.5 text-slate-400 hover:bg-slate-100"><svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button>
+        </div>
+        <form id="loginForm" class="space-y-4 px-6 py-5">
+          <div>
+            <label class="mb-1.5 block text-xs font-semibold text-slate-700">아이디</label>
+            <input id="loginIdInput" type="text" autocomplete="username" placeholder="아이디"
+              class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm placeholder-slate-400 transition focus:border-violet-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-violet-500/15"/>
+          </div>
+          <div>
+            <label class="mb-1.5 block text-xs font-semibold text-slate-700">비밀번호</label>
+            <input id="loginPasswordInput" type="password" autocomplete="current-password" placeholder="비밀번호"
+              class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm placeholder-slate-400 transition focus:border-violet-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-violet-500/15"/>
+          </div>
+          <div class="rounded-xl bg-violet-50 px-4 py-3 text-xs text-violet-700 leading-relaxed space-y-0.5">
+            <p class="font-semibold mb-1">테스트 계정</p>
+            <p>최고관리자: <code class="font-mono">superadmin</code> / <code class="font-mono">super123</code></p>
+            <p>기술팀 운영자: <code class="font-mono">op_tech</code> / <code class="font-mono">tech123</code></p>
+            <p>커뮤니티 운영자: <code class="font-mono">op_comm</code> / <code class="font-mono">comm123</code></p>
+            <p>일반 사용자: <code class="font-mono">user1</code> / <code class="font-mono">user123</code></p>
+          </div>
+          <button id="loginSubmitBtn" type="submit" class="flex w-full items-center justify-center rounded-xl bg-violet-600 py-2.5 text-sm font-semibold text-white shadow-sm shadow-violet-200 transition hover:bg-violet-700 disabled:opacity-60">로그인</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- ════════ 모달: 공간 생성 (superadmin) ════════ -->
+    <div id="createSpaceModal" class="modal-backdrop fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm" role="dialog" aria-modal="true">
+      <div class="w-full max-w-sm rounded-2xl border border-slate-200 bg-white shadow-xl">
+        <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+          <h3 class="text-sm font-bold text-slate-900">새 공간 생성</h3>
+          <button class="modal-close rounded-lg p-1.5 text-slate-400 hover:bg-slate-100"><svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button>
+        </div>
+        <form id="createSpaceForm" class="space-y-4 px-6 py-5">
+          <div>
+            <label class="mb-1.5 block text-xs font-semibold text-slate-700">공간 이름 <span class="text-rose-500">*</span></label>
+            <input id="spaceNameInput" type="text" maxlength="40" required placeholder="예: 마케팅 공간, 개발 공간"
+              class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm placeholder-slate-400 transition focus:border-violet-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-violet-500/15"/>
+          </div>
+          <div>
+            <label class="mb-1.5 block text-xs font-semibold text-slate-700">설명 (선택)</label>
+            <input id="spaceDescInput" type="text" maxlength="120" placeholder="공간 간단 설명"
+              class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm placeholder-slate-400 transition focus:border-violet-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-violet-500/15"/>
+          </div>
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input id="spaceIsPublic" type="checkbox" checked class="h-4 w-4 rounded border-slate-300 text-violet-600 focus:ring-violet-500"/>
+            <span class="text-sm text-slate-700">공개 공간 (누구나 접근 가능)</span>
+          </label>
+          <div class="flex gap-2 pt-1">
+            <button type="button" class="modal-close flex-1 rounded-xl border border-slate-200 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">취소</button>
+            <button id="createSpaceSubmitBtn" type="submit" class="flex-1 rounded-xl bg-violet-600 py-2.5 text-sm font-semibold text-white shadow-sm shadow-violet-200 transition hover:bg-violet-700 disabled:opacity-60">공간 생성</button>
           </div>
         </form>
       </div>
     </div>
 
-    <!-- 삭제 확인 모달 -->
-    <div
-      id="deleteModal"
-      class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm"
-      role="dialog"
-      aria-modal="true"
-    >
+    <!-- ════════ 모달: 게시판 생성 ════════ -->
+    <div id="createBoardModal" class="modal-backdrop fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm" role="dialog" aria-modal="true">
+      <div class="w-full max-w-sm rounded-2xl border border-slate-200 bg-white shadow-xl">
+        <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+          <div>
+            <h3 class="text-sm font-bold text-slate-900">게시판 추가</h3>
+            <p id="createBoardSpaceName" class="mt-0.5 text-xs text-slate-500"></p>
+          </div>
+          <button class="modal-close rounded-lg p-1.5 text-slate-400 hover:bg-slate-100"><svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button>
+        </div>
+        <form id="createBoardForm" class="space-y-4 px-6 py-5">
+          <div>
+            <label class="mb-1.5 block text-xs font-semibold text-slate-700">게시판 이름 <span class="text-rose-500">*</span></label>
+            <input id="boardNameInput" type="text" maxlength="30" required placeholder="예: 자유게시판, QA, 공지사항"
+              class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm placeholder-slate-400 transition focus:border-violet-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-violet-500/15"/>
+          </div>
+          <div>
+            <label class="mb-1.5 block text-xs font-semibold text-slate-700">설명 (선택)</label>
+            <input id="boardDescInput" type="text" maxlength="100" placeholder="게시판 간단 설명"
+              class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm placeholder-slate-400 transition focus:border-violet-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-violet-500/15"/>
+          </div>
+          <div class="flex gap-2 pt-1">
+            <button type="button" class="modal-close flex-1 rounded-xl border border-slate-200 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">취소</button>
+            <button id="createBoardSubmitBtn" type="submit" class="flex-1 rounded-xl bg-violet-600 py-2.5 text-sm font-semibold text-white shadow-sm shadow-violet-200 transition hover:bg-violet-700 disabled:opacity-60">게시판 추가</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ════════ 모달: 운영자 관리 (superadmin) ════════ -->
+    <div id="manageOpsModal" class="modal-backdrop fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm" role="dialog" aria-modal="true">
+      <div class="w-full max-w-sm rounded-2xl border border-slate-200 bg-white shadow-xl">
+        <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+          <div>
+            <h3 class="text-sm font-bold text-slate-900">운영자 관리</h3>
+            <p id="manageOpsSpaceName" class="mt-0.5 text-xs text-slate-500"></p>
+          </div>
+          <button class="modal-close rounded-lg p-1.5 text-slate-400 hover:bg-slate-100"><svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button>
+        </div>
+        <div class="px-6 py-5 space-y-4">
+          <div>
+            <p class="mb-2 text-xs font-semibold text-slate-500 uppercase tracking-widest">현재 운영자</p>
+            <div id="currentOperatorsList" class="space-y-2"></div>
+          </div>
+          <div class="border-t border-slate-100 pt-4">
+            <p class="mb-2 text-xs font-semibold text-slate-500 uppercase tracking-widest">운영자 추가</p>
+            <div class="flex gap-2">
+              <select id="addOperatorSelect" class="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 focus:border-violet-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-violet-500/15">
+                <option value="">사용자 선택...</option>
+              </select>
+              <button id="addOperatorBtn" type="button" class="rounded-xl bg-violet-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-violet-700 disabled:opacity-60">추가</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════ 모달: 게시글 상세 + 댓글 ════════ -->
+    <div id="postDetailModal" class="modal-backdrop fixed inset-0 z-40 hidden items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm" role="dialog" aria-modal="true">
+      <div class="flex w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl" style="max-height:90vh">
+        <!-- 모달 헤더 -->
+        <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+          <div class="flex items-center gap-2">
+            <span id="detailPostIdBadge" class="rounded-md bg-violet-50 px-2 py-0.5 text-xs font-semibold text-violet-600">#1</span>
+            <h3 id="detailModalTitle" class="text-sm font-bold text-slate-900">게시글 상세</h3>
+          </div>
+          <button class="modal-close rounded-lg p-1.5 text-slate-400 hover:bg-slate-100"><svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button>
+        </div>
+        <!-- 스크롤 영역 -->
+        <div class="flex-1 overflow-y-auto">
+          <!-- 상세 보기 -->
+          <div id="detailViewBody" class="px-6 py-5">
+            <h4 id="detailTitle" class="text-xl font-bold leading-snug text-slate-900 break-words"></h4>
+            <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
+              <span id="detailAuthor" class="font-semibold text-slate-700"></span>
+              <span>·</span>
+              <time id="detailDate"></time>
+              <span id="detailEditedBadge" class="hidden rounded bg-slate-100 px-1.5 py-0.5 text-[11px] text-slate-500">수정됨</span>
+            </div>
+            <div class="mt-4 rounded-xl bg-slate-50 p-4">
+              <p id="detailContent" class="whitespace-pre-wrap break-words text-sm leading-relaxed text-slate-700"></p>
+            </div>
+            <div class="mt-4 flex items-center justify-between gap-2">
+              <button id="detailDeletePostBtn" class="hidden rounded-xl px-3.5 py-2 text-xs font-semibold text-rose-600 transition hover:bg-rose-50">삭제</button>
+              <div class="flex items-center gap-2 ml-auto">
+                <button id="detailEditPostBtn" class="hidden rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50">수정하기</button>
+                <button class="modal-close rounded-xl bg-slate-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-slate-800">닫기</button>
+              </div>
+            </div>
+          </div>
+          <!-- 수정 폼 -->
+          <form id="detailEditForm" class="hidden space-y-4 px-6 py-5">
+            <div>
+              <label class="mb-1.5 block text-xs font-semibold text-slate-700">작성자</label>
+              <input id="editPostAuthor" type="text" maxlength="30" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-sm focus:border-violet-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-violet-500/15"/>
+            </div>
+            <div>
+              <label class="mb-1.5 block text-xs font-semibold text-slate-700">제목 <span class="text-rose-500">*</span></label>
+              <input id="editPostTitle" type="text" maxlength="100" required class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-sm focus:border-violet-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-violet-500/15"/>
+            </div>
+            <div>
+              <label class="mb-1.5 block text-xs font-semibold text-slate-700">내용 <span class="text-rose-500">*</span></label>
+              <textarea id="editPostContent" rows="6" maxlength="5000" required class="w-full resize-y rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-sm leading-relaxed focus:border-violet-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-violet-500/15"></textarea>
+            </div>
+            <div class="flex justify-end gap-2">
+              <button id="cancelEditPostBtn" type="button" class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50">취소</button>
+              <button id="saveEditPostBtn" type="submit" class="rounded-xl bg-violet-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-violet-700 disabled:opacity-60">저장하기</button>
+            </div>
+          </form>
+          <!-- 댓글 섹션 -->
+          <div id="commentsSection" class="border-t border-slate-100 px-6 py-5">
+            <h4 class="mb-3 text-xs font-bold uppercase tracking-widest text-slate-400">댓글 <span id="commentCountBadge" class="ml-1 font-normal normal-case text-slate-500"></span></h4>
+            <div id="commentsList" class="space-y-3"></div>
+            <!-- 댓글 작성 -->
+            <form id="createCommentForm" class="mt-4 flex flex-col gap-2 sm:flex-row sm:items-end">
+              <input id="commentAuthorInput" type="text" maxlength="30" placeholder="작성자 (익명)"
+                class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm placeholder-slate-400 focus:border-violet-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-violet-500/15 sm:w-28"/>
+              <input id="commentContentInput" type="text" maxlength="1000" required placeholder="댓글을 입력하세요..."
+                class="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm placeholder-slate-400 focus:border-violet-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-violet-500/15"/>
+              <button id="createCommentBtn" type="submit" class="shrink-0 rounded-xl bg-slate-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60">등록</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════ 모달: 삭제 확인 ════════ -->
+    <div id="confirmModal" class="modal-backdrop fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm" role="dialog" aria-modal="true">
       <div class="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
         <div class="flex h-11 w-11 items-center justify-center rounded-full bg-rose-50 text-rose-600">
-          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-            />
-          </svg>
+          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
         </div>
-        <h3 class="mt-4 text-base font-bold text-slate-900">게시글을 삭제할까요?</h3>
-        <p id="deleteTargetTitle" class="mt-1.5 line-clamp-2 text-sm text-slate-500"></p>
-
+        <h3 id="confirmTitle" class="mt-4 text-base font-bold text-slate-900">삭제하시겠습니까?</h3>
+        <p id="confirmDesc" class="mt-1.5 text-sm text-slate-500 leading-relaxed"></p>
         <div class="mt-6 flex items-center justify-end gap-2">
-          <button
-            id="cancelDeleteBtn"
-            type="button"
-            class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
-          >
-            취소
-          </button>
-          <button
-            id="confirmDeleteBtn"
-            type="button"
-            class="rounded-xl bg-rose-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-rose-700 disabled:opacity-60"
-          >
-            삭제하기
-          </button>
+          <button id="cancelConfirmBtn" type="button" class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50">취소</button>
+          <button id="okConfirmBtn" type="button" class="rounded-xl bg-rose-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-rose-700 disabled:opacity-60">삭제하기</button>
         </div>
       </div>
     </div>
 
-    <!-- 토스트 알림 -->
-    <div id="toast" class="pointer-events-none fixed bottom-5 right-5 z-50 hidden">
-      <div
-        id="toastBox"
-        class="flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-xs font-medium text-white shadow-lg"
-      >
-        <span id="toastMessage"></span>
+    <!-- ════════ 토스트 ════════ -->
+    <div id="toast" class="pointer-events-none fixed bottom-5 right-5 z-[60] hidden">
+      <div id="toastBox" class="flex items-center rounded-xl bg-slate-900 px-4 py-3 text-xs font-semibold text-white shadow-lg">
+        <span id="toastMsg"></span>
       </div>
     </div>
 
+    <!-- ════════════════════ JS ════════════════════ -->
     <script>
-      const state = {
-        posts: [],
-        searchQuery: '',
-        activePostId: null,
-        openedDirectlyInEdit: false,
-        deleteTargetId: null,
-        toastTimer: null,
-      };
+    /* ── 상태 ── */
+    const state = {
+      token: localStorage.getItem('authToken') || null,
+      user: null,
+      allUsers: [],           // superadmin이 로드하는 전체 사용자 목록
+      spaces: [],
+      boardsBySpace: {},      // spaceId → Board[]
+      activeSpaceId: null,
+      activeBoardId: null,
+      view: 'welcome',        // 'welcome'|'space'|'board'
+      posts: [],
+      searchQuery: '',
+      activePost: null,       // 현재 모달에서 보는 게시글
+      comments: [],
+      confirmCallback: null,
+      toastTimer: null,
+    };
 
-      const elements = {
-        totalCount: document.getElementById('totalCount'),
-        createForm: document.getElementById('createForm'),
-        authorInput: document.getElementById('authorInput'),
-        titleInput: document.getElementById('titleInput'),
-        contentInput: document.getElementById('contentInput'),
-        contentCount: document.getElementById('contentCount'),
-        submitBtn: document.getElementById('submitBtn'),
-        searchInput: document.getElementById('searchInput'),
-        clearSearchBtn: document.getElementById('clearSearchBtn'),
-        refreshBtn: document.getElementById('refreshBtn'),
-        postList: document.getElementById('postList'),
+    /* ── DOM 헬퍼 ── */
+    const $ = (id) => document.getElementById(id);
+    const e = {
+      sidebarToggleBtn:$('sidebarToggleBtn'), sidebarOverlay:$('sidebarOverlay'), sidebar:$('sidebar'),
+      spaceNav:$('spaceNav'), addSpaceBtn:$('addSpaceBtn'),
+      bcSpace:$('bcSpace'), bcArrow:$('bcArrow'), bcBoard:$('bcBoard'),
+      userBadge:$('userBadge'), userRolePill:$('userRolePill'), userNameText:$('userNameText'),
+      loginOpenBtn:$('loginOpenBtn'), logoutBtn:$('logoutBtn'),
+      // welcome
+      welcomeView:$('welcomeView'),
+      // space view
+      spaceView:$('spaceView'), spaceViewName:$('spaceViewName'), spaceViewDesc:$('spaceViewDesc'),
+      spacePrivateBadge:$('spacePrivateBadge'), operatorsList:$('operatorsList'),
+      manageOperatorsBtn:$('manageOperatorsBtn'), deleteSpaceBtn:$('deleteSpaceBtn'),
+      spaceAddBoardBtn:$('spaceAddBoardBtn'), spaceViewBoards:$('spaceViewBoards'),
+      // board view
+      boardView:$('boardView'), boardViewName:$('boardViewName'), boardViewDesc:$('boardViewDesc'),
+      boardPostCountBadge:$('boardPostCountBadge'), boardDeleteBtn:$('boardDeleteBtn'),
+      createPostForm:$('createPostForm'), postAuthorInput:$('postAuthorInput'),
+      postTitleInput:$('postTitleInput'), postContentInput:$('postContentInput'),
+      postContentCount:$('postContentCount'), createPostBtn:$('createPostBtn'),
+      searchInput:$('searchInput'), clearSearchBtn:$('clearSearchBtn'),
+      refreshPostsBtn:$('refreshPostsBtn'), postList:$('postList'),
+      // login modal
+      loginModal:$('loginModal'), loginForm:$('loginForm'),
+      loginIdInput:$('loginIdInput'), loginPasswordInput:$('loginPasswordInput'),
+      loginSubmitBtn:$('loginSubmitBtn'),
+      // create space
+      createSpaceModal:$('createSpaceModal'), createSpaceForm:$('createSpaceForm'),
+      spaceNameInput:$('spaceNameInput'), spaceDescInput:$('spaceDescInput'),
+      spaceIsPublic:$('spaceIsPublic'), createSpaceSubmitBtn:$('createSpaceSubmitBtn'),
+      // create board
+      createBoardModal:$('createBoardModal'), createBoardForm:$('createBoardForm'),
+      createBoardSpaceName:$('createBoardSpaceName'),
+      boardNameInput:$('boardNameInput'), boardDescInput:$('boardDescInput'),
+      createBoardSubmitBtn:$('createBoardSubmitBtn'),
+      // manage operators
+      manageOpsModal:$('manageOpsModal'), manageOpsSpaceName:$('manageOpsSpaceName'),
+      currentOperatorsList:$('currentOperatorsList'),
+      addOperatorSelect:$('addOperatorSelect'), addOperatorBtn:$('addOperatorBtn'),
+      // post detail
+      postDetailModal:$('postDetailModal'),
+      detailPostIdBadge:$('detailPostIdBadge'), detailModalTitle:$('detailModalTitle'),
+      detailViewBody:$('detailViewBody'), detailTitle:$('detailTitle'),
+      detailAuthor:$('detailAuthor'), detailDate:$('detailDate'),
+      detailEditedBadge:$('detailEditedBadge'), detailContent:$('detailContent'),
+      detailDeletePostBtn:$('detailDeletePostBtn'), detailEditPostBtn:$('detailEditPostBtn'),
+      detailEditForm:$('detailEditForm'),
+      editPostAuthor:$('editPostAuthor'), editPostTitle:$('editPostTitle'),
+      editPostContent:$('editPostContent'), cancelEditPostBtn:$('cancelEditPostBtn'),
+      saveEditPostBtn:$('saveEditPostBtn'),
+      commentsSection:$('commentsSection'), commentCountBadge:$('commentCountBadge'),
+      commentsList:$('commentsList'), createCommentForm:$('createCommentForm'),
+      commentAuthorInput:$('commentAuthorInput'), commentContentInput:$('commentContentInput'),
+      createCommentBtn:$('createCommentBtn'),
+      // confirm
+      confirmModal:$('confirmModal'), confirmTitle:$('confirmTitle'),
+      confirmDesc:$('confirmDesc'), cancelConfirmBtn:$('cancelConfirmBtn'),
+      okConfirmBtn:$('okConfirmBtn'),
+      // toast
+      toast:$('toast'), toastBox:$('toastBox'), toastMsg:$('toastMsg'),
+    };
 
-        postModal: document.getElementById('postModal'),
-        modalPostIdBadge: document.getElementById('modalPostIdBadge'),
-        modalHeaderTitle: document.getElementById('modalHeaderTitle'),
-        closePostModalBtn: document.getElementById('closePostModalBtn'),
-        modalViewBody: document.getElementById('modalViewBody'),
-        viewTitle: document.getElementById('viewTitle'),
-        viewAuthor: document.getElementById('viewAuthor'),
-        viewDate: document.getElementById('viewDate'),
-        viewEditedBadge: document.getElementById('viewEditedBadge'),
-        viewContent: document.getElementById('viewContent'),
-        modalDeleteBtn: document.getElementById('modalDeleteBtn'),
-        modalSwitchEditBtn: document.getElementById('modalSwitchEditBtn'),
-        modalViewCloseBtn: document.getElementById('modalViewCloseBtn'),
+    /* ── 유틸 ── */
+    function esc(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+        .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    }
+    function fmt(iso) {
+      const d = new Date(iso); if(isNaN(d))return'';
+      const p = n=>String(n).padStart(2,'0');
+      return `${d.getFullYear()}.${p(d.getMonth()+1)}.${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+    }
+    function showToast(msg, type='success') {
+      clearTimeout(state.toastTimer);
+      e.toastMsg.textContent = msg;
+      e.toastBox.className = type==='error'
+        ? 'flex items-center rounded-xl bg-rose-600 px-4 py-3 text-xs font-semibold text-white shadow-lg'
+        : 'flex items-center rounded-xl bg-slate-900 px-4 py-3 text-xs font-semibold text-white shadow-lg';
+      e.toast.classList.remove('hidden');
+      state.toastTimer = setTimeout(()=>e.toast.classList.add('hidden'), 2800);
+    }
 
-        modalEditForm: document.getElementById('modalEditForm'),
-        editAuthorInput: document.getElementById('editAuthorInput'),
-        editTitleInput: document.getElementById('editTitleInput'),
-        editContentInput: document.getElementById('editContentInput'),
-        modalCancelEditBtn: document.getElementById('modalCancelEditBtn'),
-        modalSaveEditBtn: document.getElementById('modalSaveEditBtn'),
+    /* ── 모달 헬퍼 ── */
+    function openModal(el) { el.classList.remove('hidden'); el.classList.add('flex'); }
+    function closeModal(el){ el.classList.add('hidden');    el.classList.remove('flex'); }
 
-        deleteModal: document.getElementById('deleteModal'),
-        deleteTargetTitle: document.getElementById('deleteTargetTitle'),
-        cancelDeleteBtn: document.getElementById('cancelDeleteBtn'),
-        confirmDeleteBtn: document.getElementById('confirmDeleteBtn'),
+    document.querySelectorAll('.modal-backdrop').forEach(backdrop => {
+      backdrop.addEventListener('click', e => { if(e.target===backdrop) closeModal(backdrop); });
+    });
+    document.querySelectorAll('.modal-close').forEach(btn => {
+      btn.addEventListener('click', () => closeModal(btn.closest('.modal-backdrop')));
+    });
 
-        toast: document.getElementById('toast'),
-        toastBox: document.getElementById('toastBox'),
-        toastMessage: document.getElementById('toastMessage'),
-      };
+    function showConfirm(title, desc, onOk) {
+      e.confirmTitle.textContent = title;
+      e.confirmDesc.textContent = desc;
+      state.confirmCallback = onOk;
+      e.okConfirmBtn.disabled = false;
+      openModal(e.confirmModal);
+    }
 
-      function escapeHtml(value) {
-        return String(value)
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;')
-          .replace(/"/g, '&quot;')
-          .replace(/'/g, '&#39;');
+    /* ── API ── */
+    async function api(url, opts={}) {
+      const headers = { 'Content-Type':'application/json', ...(opts.headers||{}) };
+      if(state.token) headers['Authorization'] = `Bearer ${state.token}`;
+      const res = await fetch(url, { ...opts, headers });
+      const data = await res.json().catch(()=>({}));
+      if(!res.ok) throw new Error(data.error || '오류가 발생했습니다.');
+      return data;
+    }
+
+    /* ── 사이드바 ── */
+    function openSidebar()  { e.sidebar.classList.remove('-translate-x-full'); e.sidebarOverlay.classList.remove('hidden'); }
+    function closeSidebar() { e.sidebar.classList.add('-translate-x-full');    e.sidebarOverlay.classList.add('hidden'); }
+    e.sidebarToggleBtn.addEventListener('click', openSidebar);
+    e.sidebarOverlay.addEventListener('click', closeSidebar);
+
+    /* ── 인증 UI 업데이트 ── */
+    const ROLE_LABEL = { superadmin:'최고 관리자', operator:'운영자', user:'일반 사용자' };
+    const ROLE_CLASS = {
+      superadmin:'bg-amber-100 text-amber-700',
+      operator:  'bg-violet-100 text-violet-700',
+      user:      'bg-slate-100 text-slate-600',
+    };
+    function updateAuthUI() {
+      const u = state.user;
+      const loggedIn = !!u;
+      e.loginOpenBtn.classList.toggle('hidden', loggedIn);
+      if(loggedIn) {
+        e.userBadge.classList.remove('hidden'); e.userBadge.classList.add('flex');
+        e.logoutBtn.classList.remove('hidden'); e.logoutBtn.classList.add('flex');
+        e.userNameText.classList.remove('hidden');
+        e.userNameText.textContent = u.name;
+        e.userRolePill.classList.remove('hidden');
+        e.userRolePill.textContent = ROLE_LABEL[u.role] || u.role;
+        e.userRolePill.className = `rounded-full px-2 py-0.5 text-[11px] font-bold ${ROLE_CLASS[u.role]||'bg-slate-100 text-slate-600'}`;
+      } else {
+        e.userBadge.classList.add('hidden');  e.userBadge.classList.remove('flex');
+        e.logoutBtn.classList.add('hidden');  e.logoutBtn.classList.remove('flex');
       }
+      // superadmin 전용 UI
+      const isSuperAdmin = u?.role === 'superadmin';
+      toggleVisible(e.addSpaceBtn, isSuperAdmin);
+    }
+    function toggleVisible(el, show) {
+      if(show) { el.classList.remove('hidden'); el.classList.add('flex'); }
+      else      { el.classList.add('hidden');   el.classList.remove('flex'); }
+    }
 
-      function formatDate(isoString) {
-        const date = new Date(isoString);
-        if (Number.isNaN(date.getTime())) return '';
-        const yyyy = date.getFullYear();
-        const mm = String(date.getMonth() + 1).padStart(2, '0');
-        const dd = String(date.getDate()).padStart(2, '0');
-        const hh = String(date.getHours()).padStart(2, '0');
-        const min = String(date.getMinutes()).padStart(2, '0');
-        return `${yyyy}.${mm}.${dd} ${hh}:${min}`;
+    /* ── 브레드크럼 ── */
+    function updateBreadcrumb() {
+      const space = state.spaces.find(s=>s.id===state.activeSpaceId);
+      const board = state.boardsBySpace[state.activeSpaceId]?.find(b=>b.id===state.activeBoardId);
+      if(space) { e.bcSpace.textContent=space.name; e.bcSpace.classList.remove('hidden'); } else e.bcSpace.classList.add('hidden');
+      if(board) { e.bcBoard.textContent=board.name; e.bcBoard.classList.remove('hidden'); e.bcArrow.classList.remove('hidden'); }
+      else { e.bcBoard.classList.add('hidden'); e.bcArrow.classList.add('hidden'); }
+    }
+
+    /* ═══════════════ 공간 로드 & 렌더 ═══════════════ */
+    async function loadSpaces() {
+      state.spaces = await api('/api/spaces');
+      renderSpaceNav();
+    }
+
+    function renderSpaceNav() {
+      if(!state.spaces.length) {
+        e.spaceNav.innerHTML=`<div class="px-3 py-6 text-center text-xs text-slate-400">공간이 없습니다.</div>`;
+        return;
       }
+      e.spaceNav.innerHTML = state.spaces.map(space => {
+        const isActiveSpace = space.id === state.activeSpaceId;
+        const isOperator = isSpaceOperatorLocal(space);
+        const boards = state.boardsBySpace[space.id] || [];
+        const isExpanded = isActiveSpace;
+        const inaccessible = !space.accessible;
 
-      function showToast(message, type = 'success') {
-        clearTimeout(state.toastTimer);
-        elements.toastMessage.textContent = message;
-        elements.toastBox.className =
-          type === 'error'
-            ? 'flex items-center gap-2 rounded-xl bg-rose-600 px-4 py-3 text-xs font-medium text-white shadow-lg'
-            : 'flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-xs font-medium text-white shadow-lg';
-        elements.toast.classList.remove('hidden');
-        state.toastTimer = setTimeout(() => {
-          elements.toast.classList.add('hidden');
-        }, 2800);
-      }
-
-      async function requestApi(url, options = {}) {
-        const response = await fetch(url, {
-          headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
-          ...options,
-        });
-        const data = await response.json().catch(() => ({}));
-        if (!response.ok) {
-          throw new Error(data.error || '요청 처리 중 오류가 발생했습니다.');
-        }
-        return data;
-      }
-
-      function renderSkeleton() {
-        elements.postList.innerHTML = Array.from({ length: 3 })
-          .map(
-            () => `
-          <div class="animate-pulse rounded-2xl border border-slate-200/80 bg-white p-5">
-            <div class="flex items-center gap-2">
-              <div class="h-4 w-10 rounded bg-slate-200"></div>
-              <div class="h-4 w-16 rounded bg-slate-200"></div>
-              <div class="h-4 w-24 rounded bg-slate-100"></div>
-            </div>
-            <div class="mt-3 h-5 w-2/3 rounded bg-slate-200"></div>
-            <div class="mt-2 h-4 w-full rounded bg-slate-100"></div>
-          </div>`
-          )
-          .join('');
-      }
-
-      function renderPosts() {
-        elements.totalCount.textContent = state.posts.length;
-
-        if (state.posts.length === 0) {
-          const isSearching = state.searchQuery.trim().length > 0;
-          elements.postList.innerHTML = `
-            <div class="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center">
-              <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
-                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
+        return `
+        <div data-space-block="${space.id}">
+          <button type="button" data-space-id="${space.id}" class="space-nav-btn w-full rounded-xl px-3 py-2.5 text-left transition ${isActiveSpace?'bg-violet-50':'hover:bg-slate-100'} ${inaccessible?'opacity-50':''}" ${inaccessible?'disabled':''}>
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center gap-1.5 min-w-0">
+                ${!space.isPublic?`<svg class="h-3 w-3 shrink-0 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>`:''}
+                <span class="truncate text-sm font-semibold ${isActiveSpace?'text-violet-700':'text-slate-700'}">${esc(space.name)}</span>
               </div>
-              <p class="mt-3 text-sm font-semibold text-slate-700">
-                ${isSearching ? '검색 결과가 없습니다.' : '아직 작성된 게시글이 없습니다.'}
-              </p>
-              <p class="mt-1 text-xs text-slate-400">
-                ${
-                  isSearching
-                    ? '다른 검색어로 다시 검색해 보세요.'
-                    : '왼쪽 작성 폼에서 첫 번째 글을 남겨보세요!'
-                }
-              </p>
+              <div class="flex shrink-0 items-center gap-1">
+                ${isOperator?`<span class="rounded-full bg-violet-100 px-1.5 py-0.5 text-[10px] font-bold text-violet-600">운영</span>`:''}
+                <svg class="h-3.5 w-3.5 text-slate-400 transition-transform ${isExpanded?'rotate-90':''}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+              </div>
             </div>
-          `;
-          return;
-        }
-
-        elements.postList.innerHTML = state.posts
-          .map((post) => {
-            const isEdited = post.updatedAt && post.updatedAt !== post.createdAt;
-            return `
-              <article
-                data-id="${post.id}"
-                class="group rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm transition hover:border-indigo-200 hover:shadow-md"
-              >
-                <div class="flex items-start justify-between gap-3">
-                  <div class="flex flex-wrap items-center gap-2 text-xs">
-                    <span class="rounded-md bg-slate-100 px-2 py-0.5 font-semibold text-slate-600">
-                      #${post.id}
-                    </span>
-                    <span class="font-semibold text-slate-700">${escapeHtml(post.author)}</span>
-                    <span class="text-slate-300">·</span>
-                    <time class="text-slate-400">${formatDate(post.createdAt)}</time>
-                    ${
-                      isEdited
-                        ? '<span class="rounded bg-indigo-50 px-1.5 py-0.5 text-[11px] font-medium text-indigo-600">수정됨</span>'
-                        : ''
-                    }
-                  </div>
-
-                  <div class="flex shrink-0 items-center gap-1">
-                    <button
-                      type="button"
-                      data-action="edit"
-                      data-id="${post.id}"
-                      class="rounded-lg px-2.5 py-1 text-xs font-medium text-slate-500 transition hover:bg-indigo-50 hover:text-indigo-600"
-                    >
-                      수정
-                    </button>
-                    <button
-                      type="button"
-                      data-action="delete"
-                      data-id="${post.id}"
-                      class="rounded-lg px-2.5 py-1 text-xs font-medium text-slate-500 transition hover:bg-rose-50 hover:text-rose-600"
-                    >
-                      삭제
-                    </button>
-                  </div>
+            ${space.description?`<p class="mt-0.5 truncate text-xs ${isActiveSpace?'text-violet-500':'text-slate-400'}">${esc(space.description)}</p>`:''}
+          </button>
+          <div class="board-sublist ${isExpanded?'':'hidden'} pl-3 py-1 space-y-0.5" data-space-boards="${space.id}">
+            ${boards.map(b=>{
+              const isActiveBoard = b.id === state.activeBoardId;
+              return `<button type="button" data-board-id="${b.id}" data-board-space="${space.id}"
+                class="board-nav-btn w-full rounded-lg px-3 py-2 text-left transition ${isActiveBoard?'bg-violet-100 text-violet-700':'text-slate-600 hover:bg-slate-100'}">
+                <div class="flex items-center justify-between gap-1">
+                  <span class="truncate text-xs font-semibold">${esc(b.name)}</span>
+                  <span class="shrink-0 rounded-full ${isActiveBoard?'bg-violet-200 text-violet-700':'bg-slate-100 text-slate-500'} px-1.5 py-0.5 text-[10px] font-semibold">${b.postCount??0}</span>
                 </div>
+              </button>`;
+            }).join('')}
+            ${isExpanded&&(isOperator)?`
+            <button type="button" data-add-board-space="${space.id}"
+              class="w-full rounded-lg px-3 py-1.5 text-left text-xs font-medium text-violet-600 transition hover:bg-violet-50 flex items-center gap-1">
+              <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg> 게시판 추가
+            </button>`:''}
+          </div>
+        </div>`;
+      }).join('');
+    }
 
-                <div data-action="view" data-id="${post.id}" class="mt-2.5 cursor-pointer">
-                  <h3 class="text-base font-bold text-slate-900 transition group-hover:text-indigo-600 line-clamp-1">
-                    ${escapeHtml(post.title)}
-                  </h3>
-                  <p class="mt-1.5 whitespace-pre-line text-sm leading-relaxed text-slate-600 line-clamp-2">
-                    ${escapeHtml(post.content)}
-                  </p>
-                </div>
-              </article>
-            `;
-          })
-          .join('');
+    function isSpaceOperatorLocal(space) {
+      const u = state.user;
+      if(!u) return false;
+      if(u.role==='superadmin') return true;
+      return u.role==='operator' && (space.operatorIds||[]).includes(u.id);
+    }
+
+    // 공간 nav 클릭 위임
+    e.spaceNav.addEventListener('click', async ev => {
+      const spaceBtn = ev.target.closest('[data-space-id]');
+      const boardBtn = ev.target.closest('[data-board-id]');
+      const addBoardBtn = ev.target.closest('[data-add-board-space]');
+
+      if(addBoardBtn) {
+        openCreateBoardModal(Number(addBoardBtn.dataset.addBoardSpace));
+        return;
       }
-
-      async function loadPosts(showLoading = false) {
-        if (showLoading) renderSkeleton();
-        try {
-          const query = state.searchQuery.trim();
-          const url = query ? `/api/posts?q=${encodeURIComponent(query)}` : '/api/posts';
-          state.posts = await requestApi(url);
-          renderPosts();
-        } catch (error) {
-          showToast(error.message, 'error');
-        }
+      if(boardBtn) {
+        const bid = Number(boardBtn.dataset.boardId);
+        const sid = Number(boardBtn.dataset.boardSpace);
+        state.activeBoardId = bid;
+        state.activeSpaceId = sid;
+        state.searchQuery=''; e.searchInput.value=''; e.clearSearchBtn.classList.add('hidden');
+        renderSpaceNav(); closeSidebar(); updateBreadcrumb();
+        await loadBoardView();
+        return;
       }
-
-      function openPostModal(post, editMode = false) {
-        state.activePostId = post.id;
-        state.openedDirectlyInEdit = editMode;
-        elements.modalPostIdBadge.textContent = `#${post.id}`;
-
-        elements.viewTitle.textContent = post.title;
-        elements.viewAuthor.textContent = post.author;
-        elements.viewDate.textContent = formatDate(post.createdAt);
-        elements.viewContent.textContent = post.content;
-
-        const isEdited = post.updatedAt && post.updatedAt !== post.createdAt;
-        elements.viewEditedBadge.classList.toggle('hidden', !isEdited);
-
-        elements.editAuthorInput.value = post.author;
-        elements.editTitleInput.value = post.title;
-        elements.editContentInput.value = post.content;
-
-        toggleModalEditMode(editMode);
-        elements.postModal.classList.remove('hidden');
-        elements.postModal.classList.add('flex');
-      }
-
-      function toggleModalEditMode(isEdit) {
-        elements.modalHeaderTitle.textContent = isEdit ? '게시글 수정' : '게시글 상세';
-        elements.modalViewBody.classList.toggle('hidden', isEdit);
-        elements.modalEditForm.classList.toggle('hidden', !isEdit);
-        if (isEdit) {
-          elements.editTitleInput.focus();
-        }
-      }
-
-      function closePostModal() {
-        elements.postModal.classList.add('hidden');
-        elements.postModal.classList.remove('flex');
-        state.activePostId = null;
-      }
-
-      function openDeleteModal(post) {
-        state.deleteTargetId = post.id;
-        elements.deleteTargetTitle.textContent = `"${post.title}" 글은 삭제 후 복구할 수 없습니다.`;
-        elements.deleteModal.classList.remove('hidden');
-        elements.deleteModal.classList.add('flex');
-      }
-
-      function closeDeleteModal() {
-        elements.deleteModal.classList.add('hidden');
-        elements.deleteModal.classList.remove('flex');
-        state.deleteTargetId = null;
-      }
-
-      // 글자 수 카운터
-      elements.contentInput.addEventListener('input', () => {
-        elements.contentCount.textContent = `${elements.contentInput.value.length} / 5000`;
-      });
-
-      // 새 글 등록
-      elements.createForm.addEventListener('submit', async (event) => {
-        event.preventDefault();
-        const author = elements.authorInput.value.trim();
-        const title = elements.titleInput.value.trim();
-        const content = elements.contentInput.value.trim();
-
-        if (!title || !content) {
-          showToast('제목과 내용을 모두 입력해주세요.', 'error');
+      if(spaceBtn) {
+        const sid = Number(spaceBtn.dataset.spaceId);
+        const space = state.spaces.find(s=>s.id===sid);
+        if(!space?.accessible) { showToast('이 공간에 접근 권한이 없습니다.','error'); return; }
+        if(state.activeSpaceId===sid) {
+          // 같은 공간 클릭 → 접기/펴기
+          state.activeBoardId=null; state.view='space';
+          renderSpaceNav(); showSpaceView(); closeSidebar(); updateBreadcrumb();
           return;
         }
+        state.activeSpaceId=sid; state.activeBoardId=null; state.view='space';
+        // 보드 로드
+        await loadBoardsForSpace(sid);
+        renderSpaceNav(); closeSidebar(); updateBreadcrumb();
+        showSpaceView();
+      }
+    });
 
-        elements.submitBtn.disabled = true;
+    async function loadBoardsForSpace(spaceId) {
+      const boards = await api(`/api/spaces/${spaceId}/boards`);
+      state.boardsBySpace[spaceId] = boards;
+    }
+
+    /* ═══════════════ 공간 뷰 ═══════════════ */
+    async function showSpaceView() {
+      const space = state.spaces.find(s=>s.id===state.activeSpaceId);
+      if(!space) return;
+      e.welcomeView.classList.add('hidden');
+      e.boardView.classList.add('hidden');
+      e.spaceView.classList.remove('hidden');
+
+      e.spaceViewName.textContent = space.name;
+      e.spaceViewDesc.textContent = space.description || '';
+      toggleVisible(e.spacePrivateBadge, !space.isPublic);
+
+      const isSuperAdmin = state.user?.role==='superadmin';
+      const isOp = isSpaceOperatorLocal(space);
+      toggleVisible(e.deleteSpaceBtn, isSuperAdmin);
+      toggleVisible(e.manageOperatorsBtn, isSuperAdmin);
+      toggleVisible(e.spaceAddBoardBtn, isOp);
+
+      // 운영자 목록
+      renderOperatorsList(space);
+
+      // 게시판 그리드
+      const boards = state.boardsBySpace[space.id] || [];
+      if(boards.length===0) {
+        e.spaceViewBoards.innerHTML=`<div class="col-span-3 rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-10 text-center text-sm text-slate-400">
+          아직 게시판이 없습니다. ${isOp?'상단 버튼으로 게시판을 추가하세요.':''}</div>`;
+      } else {
+        e.spaceViewBoards.innerHTML = boards.map(b=>`
+          <button type="button" data-board-id="${b.id}" data-board-space="${b.spaceId}"
+            class="board-nav-btn rounded-2xl border border-slate-200/80 bg-white p-5 text-left shadow-sm transition hover:border-violet-200 hover:shadow-md">
+            <div class="flex items-start justify-between gap-2">
+              <h4 class="font-bold text-slate-900 text-sm">${esc(b.name)}</h4>
+              <span class="shrink-0 rounded-full bg-violet-50 px-2 py-0.5 text-xs font-semibold text-violet-600">${b.postCount??0}개</span>
+            </div>
+            ${b.description?`<p class="mt-1.5 text-xs text-slate-400 line-clamp-2">${esc(b.description)}</p>`:''}
+            <p class="mt-3 text-[11px] text-violet-600 font-medium">게시판 열기 →</p>
+          </button>`).join('');
+      }
+    }
+
+    function renderOperatorsList(space) {
+      if(!space.operators || !space.operators.length) {
+        e.operatorsList.innerHTML=`<span class="text-xs text-slate-400">지정된 운영자가 없습니다.</span>`;
+        return;
+      }
+      e.operatorsList.innerHTML = space.operators.map(op=>`
+        <div class="flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-2">
+          <div class="flex h-7 w-7 items-center justify-center rounded-full bg-violet-100 text-xs font-bold text-violet-600">${esc(op.name[0])}</div>
+          <div class="min-w-0">
+            <p class="text-xs font-semibold text-slate-700">${esc(op.name)}</p>
+            <p class="text-[11px] text-slate-400">${esc(op.id)} · ${ROLE_LABEL[op.role]||op.role}</p>
+          </div>
+        </div>`).join('');
+    }
+
+    // 공간 뷰에서 게시판 클릭 위임
+    e.spaceViewBoards.addEventListener('click', async ev => {
+      const btn = ev.target.closest('[data-board-id]');
+      if(!btn) return;
+      state.activeBoardId = Number(btn.dataset.boardId);
+      state.activeSpaceId = Number(btn.dataset.boardSpace);
+      state.searchQuery=''; e.searchInput.value=''; e.clearSearchBtn.classList.add('hidden');
+      renderSpaceNav(); updateBreadcrumb();
+      await loadBoardView();
+    });
+
+    /* ═══════════════ 게시판 뷰 ═══════════════ */
+    async function loadBoardView() {
+      e.welcomeView.classList.add('hidden');
+      e.spaceView.classList.add('hidden');
+      e.boardView.classList.remove('hidden');
+
+      const space = state.spaces.find(s=>s.id===state.activeSpaceId);
+      const boards = state.boardsBySpace[state.activeSpaceId]||[];
+      const board = boards.find(b=>b.id===state.activeBoardId);
+      if(!board) return;
+
+      e.boardViewName.textContent = board.name;
+      e.boardViewDesc.textContent = board.description||'';
+      const isOp = space && isSpaceOperatorLocal(space);
+      toggleVisible(e.boardDeleteBtn, !!isOp);
+
+      // 로그인한 사용자면 작성자 자동 채우기
+      if(state.user && !e.postAuthorInput.value) e.postAuthorInput.value = state.user.name;
+
+      await loadPosts(true);
+    }
+
+    function renderPostSkeleton() {
+      e.postList.innerHTML = Array.from({length:3}).map(()=>`
+        <div class="animate-pulse rounded-2xl border border-slate-200/80 bg-white p-5">
+          <div class="flex items-center gap-2"><div class="h-4 w-10 rounded bg-slate-200"></div><div class="h-4 w-20 rounded bg-slate-200"></div></div>
+          <div class="mt-3 h-5 w-2/3 rounded bg-slate-200"></div>
+          <div class="mt-2 h-4 w-full rounded bg-slate-100"></div>
+        </div>`).join('');
+    }
+
+    function renderPosts() {
+      const boards = state.boardsBySpace[state.activeSpaceId]||[];
+      const board  = boards.find(b=>b.id===state.activeBoardId);
+      e.boardPostCountBadge.textContent = `${state.posts.length}개`;
+      if(board) {
+        const idx = boards.findIndex(b=>b.id===state.activeBoardId);
+        if(idx!==-1) boards[idx].postCount = state.posts.length;
+        renderSpaceNav();
+      }
+      if(!state.posts.length) {
+        const isSearch = state.searchQuery.trim().length>0;
+        e.postList.innerHTML=`<div class="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-14 text-center">
+          <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          </div>
+          <p class="mt-3 text-sm font-semibold text-slate-700">${isSearch?'검색 결과가 없습니다.':'아직 게시글이 없습니다.'}</p>
+          <p class="mt-1 text-xs text-slate-400">${isSearch?'다른 검색어로 다시 시도해 보세요.':'왼쪽 폼에서 첫 번째 글을 작성해 보세요!'}</p>
+        </div>`;
+        return;
+      }
+      e.postList.innerHTML = state.posts.map(p=>{
+        const isEdited = p.updatedAt && p.updatedAt!==p.createdAt;
+        return `
+        <article data-id="${p.id}" class="group rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm transition hover:border-violet-200 hover:shadow-md">
+          <div class="flex items-start justify-between gap-3">
+            <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+              <span class="rounded-md bg-slate-100 px-2 py-0.5 font-semibold text-slate-600">#${p.id}</span>
+              <span class="font-semibold text-slate-700">${esc(p.author)}</span>
+              <span class="text-slate-300">·</span>
+              <time class="text-slate-400">${fmt(p.createdAt)}</time>
+              ${isEdited?'<span class="rounded bg-violet-50 px-1.5 py-0.5 text-[11px] font-medium text-violet-600">수정됨</span>':''}
+              ${p.commentCount?`<span class="flex items-center gap-0.5 text-slate-400"><svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>${p.commentCount}</span>`:''}
+            </div>
+            <div class="flex shrink-0 items-center gap-1">
+              <button type="button" data-action="edit" data-id="${p.id}" class="rounded-lg px-2.5 py-1 text-xs font-medium text-slate-500 transition hover:bg-violet-50 hover:text-violet-600">수정</button>
+              <button type="button" data-action="delete" data-id="${p.id}" class="rounded-lg px-2.5 py-1 text-xs font-medium text-slate-500 transition hover:bg-rose-50 hover:text-rose-600">삭제</button>
+            </div>
+          </div>
+          <div data-action="view" data-id="${p.id}" class="mt-2.5 cursor-pointer">
+            <h3 class="text-base font-bold text-slate-900 line-clamp-1 transition group-hover:text-violet-600">${esc(p.title)}</h3>
+            <p class="mt-1 whitespace-pre-line text-sm leading-relaxed text-slate-500 line-clamp-2">${esc(p.content)}</p>
+          </div>
+        </article>`;
+      }).join('');
+    }
+
+    async function loadPosts(showLoading=false) {
+      if(!state.activeSpaceId||!state.activeBoardId) return;
+      if(showLoading) renderPostSkeleton();
+      const q = state.searchQuery.trim();
+      const url = `/api/spaces/${state.activeSpaceId}/boards/${state.activeBoardId}/posts${q?`?q=${encodeURIComponent(q)}`:''}`;
+      state.posts = await api(url);
+      renderPosts();
+    }
+
+    /* ─ 검색 ─ */
+    let searchTimer=null;
+    e.searchInput.addEventListener('input', ()=>{
+      state.searchQuery = e.searchInput.value;
+      e.clearSearchBtn.classList.toggle('hidden', !state.searchQuery);
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(()=>loadPosts(), 180);
+    });
+    e.clearSearchBtn.addEventListener('click', ()=>{
+      e.searchInput.value=''; state.searchQuery=''; e.clearSearchBtn.classList.add('hidden'); loadPosts();
+    });
+    e.refreshPostsBtn.addEventListener('click', ()=>loadPosts(true));
+
+    /* ─ 글 작성 ─ */
+    e.postContentInput.addEventListener('input', ()=>{
+      e.postContentCount.textContent = `${e.postContentInput.value.length} / 5000`;
+    });
+    e.createPostForm.addEventListener('submit', async ev=>{
+      ev.preventDefault();
+      e.createPostBtn.disabled=true;
+      try {
+        await api(`/api/spaces/${state.activeSpaceId}/boards/${state.activeBoardId}/posts`,{
+          method:'POST',
+          body:JSON.stringify({ author:e.postAuthorInput.value.trim(), title:e.postTitleInput.value.trim(), content:e.postContentInput.value.trim() })
+        });
+        e.createPostForm.reset(); e.postContentCount.textContent='0 / 5000';
+        if(state.user) e.postAuthorInput.value=state.user.name;
+        showToast('게시글이 등록되었습니다.');
+        await loadPosts(); await loadSpaces();
+      } catch(err){ showToast(err.message,'error'); }
+      finally{ e.createPostBtn.disabled=false; }
+    });
+
+    /* ─ 목록 클릭 위임 ─ */
+    e.postList.addEventListener('click', async ev=>{
+      const trigger = ev.target.closest('[data-action]');
+      if(!trigger) return;
+      const { action, id } = trigger.dataset;
+      const pid = Number(id);
+      const post = state.posts.find(p=>p.id===pid);
+      if(!post) return;
+      if(action==='view') await openPostDetail(pid, false);
+      else if(action==='edit') await openPostDetail(pid, true);
+      else if(action==='delete') promptDeletePost(post);
+    });
+
+    /* ═══════════════ 게시글 상세 모달 ═══════════════ */
+    async function openPostDetail(postId, editMode=false) {
+      const post = await api(`/api/spaces/${state.activeSpaceId}/boards/${state.activeBoardId}/posts/${postId}`);
+      state.activePost = post;
+      const comments = await api(`/api/spaces/${state.activeSpaceId}/boards/${state.activeBoardId}/posts/${postId}/comments`);
+      state.comments = comments;
+
+      e.detailPostIdBadge.textContent = `#${post.id}`;
+      e.detailTitle.textContent = post.title;
+      e.detailAuthor.textContent = post.author;
+      e.detailDate.textContent = fmt(post.createdAt);
+      e.detailContent.textContent = post.content;
+      const isEdited = post.updatedAt && post.updatedAt!==post.createdAt;
+      e.detailEditedBadge.classList.toggle('hidden', !isEdited);
+
+      e.editPostAuthor.value = post.author;
+      e.editPostTitle.value = post.title;
+      e.editPostContent.value = post.content;
+
+      const space = state.spaces.find(s=>s.id===state.activeSpaceId);
+      const isOp = space && isSpaceOperatorLocal(space);
+      toggleVisible(e.detailDeletePostBtn, !!isOp);
+      toggleVisible(e.detailEditPostBtn, !!isOp);
+
+      setDetailMode(editMode);
+      renderComments();
+      openModal(e.postDetailModal);
+    }
+
+    function setDetailMode(isEdit) {
+      e.detailModalTitle.textContent = isEdit?'게시글 수정':'게시글 상세';
+      e.detailViewBody.classList.toggle('hidden', isEdit);
+      e.detailEditForm.classList.toggle('hidden', !isEdit);
+      if(isEdit) e.editPostTitle.focus();
+    }
+
+    e.detailEditPostBtn.addEventListener('click', ()=>setDetailMode(true));
+    e.cancelEditPostBtn.addEventListener('click', ()=>setDetailMode(false));
+    e.detailDeletePostBtn.addEventListener('click', ()=>{
+      closeModal(e.postDetailModal);
+      promptDeletePost(state.activePost);
+    });
+    e.detailEditForm.addEventListener('submit', async ev=>{
+      ev.preventDefault();
+      e.saveEditPostBtn.disabled=true;
+      try {
+        await api(`/api/spaces/${state.activeSpaceId}/boards/${state.activeBoardId}/posts/${state.activePost.id}`,{
+          method:'PUT',
+          body:JSON.stringify({ author:e.editPostAuthor.value.trim(), title:e.editPostTitle.value.trim(), content:e.editPostContent.value.trim() })
+        });
+        closeModal(e.postDetailModal);
+        showToast('게시글이 수정되었습니다.');
+        await loadPosts();
+      } catch(err){ showToast(err.message,'error'); }
+      finally{ e.saveEditPostBtn.disabled=false; }
+    });
+
+    function promptDeletePost(post) {
+      showConfirm('게시글을 삭제하시겠습니까?', `"${post.title}" 글은 삭제 후 복구할 수 없습니다.`, async()=>{
+        e.okConfirmBtn.disabled=true;
         try {
-          await requestApi('/api/posts', {
-            method: 'POST',
-            body: JSON.stringify({ author, title, content }),
-          });
-          elements.createForm.reset();
-          elements.contentCount.textContent = '0 / 5000';
-          showToast('새 게시글이 등록되었습니다.');
-          await loadPosts();
-        } catch (error) {
-          showToast(error.message, 'error');
-        } finally {
-          elements.submitBtn.disabled = false;
-        }
-      });
-
-      // 검색 (디바운스)
-      let searchDebounce = null;
-      elements.searchInput.addEventListener('input', () => {
-        state.searchQuery = elements.searchInput.value;
-        elements.clearSearchBtn.classList.toggle('hidden', state.searchQuery.length === 0);
-        clearTimeout(searchDebounce);
-        searchDebounce = setTimeout(() => {
-          loadPosts();
-        }, 180);
-      });
-
-      elements.clearSearchBtn.addEventListener('click', () => {
-        elements.searchInput.value = '';
-        state.searchQuery = '';
-        elements.clearSearchBtn.classList.add('hidden');
-        loadPosts();
-      });
-
-      elements.refreshBtn.addEventListener('click', () => {
-        loadPosts(true);
-      });
-
-      // 목록 이벤트 위임 (상세, 수정, 삭제)
-      elements.postList.addEventListener('click', async (event) => {
-        const trigger = event.target.closest('[data-action]');
-        if (!trigger) return;
-
-        const action = trigger.dataset.action;
-        const id = Number(trigger.dataset.id);
-        const post = state.posts.find((item) => item.id === id);
-        if (!post) return;
-
-        if (action === 'view') {
-          try {
-            const latestPost = await requestApi(`/api/posts/${id}`);
-            openPostModal(latestPost, false);
-          } catch (error) {
-            showToast(error.message, 'error');
-            loadPosts();
-          }
-        } else if (action === 'edit') {
-          openPostModal(post, true);
-        } else if (action === 'delete') {
-          openDeleteModal(post);
-        }
-      });
-
-      // 상세/수정 모달 제어
-      elements.closePostModalBtn.addEventListener('click', closePostModal);
-      elements.modalViewCloseBtn.addEventListener('click', closePostModal);
-      elements.postModal.addEventListener('click', (event) => {
-        if (event.target === elements.postModal) closePostModal();
-      });
-
-      elements.modalSwitchEditBtn.addEventListener('click', () => {
-        state.openedDirectlyInEdit = false;
-        toggleModalEditMode(true);
-      });
-
-      elements.modalCancelEditBtn.addEventListener('click', () => {
-        if (state.openedDirectlyInEdit) {
-          closePostModal();
-        } else {
-          toggleModalEditMode(false);
-        }
-      });
-
-      elements.modalDeleteBtn.addEventListener('click', () => {
-        const post = state.posts.find((item) => item.id === state.activePostId);
-        closePostModal();
-        if (post) openDeleteModal(post);
-      });
-
-      elements.modalEditForm.addEventListener('submit', async (event) => {
-        event.preventDefault();
-        if (!state.activePostId) return;
-
-        const author = elements.editAuthorInput.value.trim();
-        const title = elements.editTitleInput.value.trim();
-        const content = elements.editContentInput.value.trim();
-
-        if (!title || !content) {
-          showToast('제목과 내용을 모두 입력해주세요.', 'error');
-          return;
-        }
-
-        elements.modalSaveEditBtn.disabled = true;
-        try {
-          await requestApi(`/api/posts/${state.activePostId}`, {
-            method: 'PUT',
-            body: JSON.stringify({ author, title, content }),
-          });
-          closePostModal();
-          showToast('게시글이 수정되었습니다.');
-          await loadPosts();
-        } catch (error) {
-          showToast(error.message, 'error');
-        } finally {
-          elements.modalSaveEditBtn.disabled = false;
-        }
-      });
-
-      // 삭제 확인 모달 제어
-      elements.cancelDeleteBtn.addEventListener('click', closeDeleteModal);
-      elements.deleteModal.addEventListener('click', (event) => {
-        if (event.target === elements.deleteModal) closeDeleteModal();
-      });
-
-      elements.confirmDeleteBtn.addEventListener('click', async () => {
-        if (!state.deleteTargetId) return;
-
-        elements.confirmDeleteBtn.disabled = true;
-        try {
-          await requestApi(`/api/posts/${state.deleteTargetId}`, {
-            method: 'DELETE',
-          });
-          closeDeleteModal();
+          await api(`/api/spaces/${state.activeSpaceId}/boards/${state.activeBoardId}/posts/${post.id}`, { method:'DELETE' });
+          closeModal(e.confirmModal);
           showToast('게시글이 삭제되었습니다.');
-          await loadPosts();
-        } catch (error) {
-          showToast(error.message, 'error');
-        } finally {
-          elements.confirmDeleteBtn.disabled = false;
-        }
+          await loadPosts(); await loadSpaces();
+        } catch(err){ showToast(err.message,'error'); e.okConfirmBtn.disabled=false; }
       });
+    }
 
-      // ESC 키로 모달 닫기
-      document.addEventListener('keydown', (event) => {
-        if (event.key !== 'Escape') return;
-        if (!elements.deleteModal.classList.contains('hidden')) {
-          closeDeleteModal();
-        } else if (!elements.postModal.classList.contains('hidden')) {
-          closePostModal();
-        }
+    /* ─ 댓글 ─ */
+    function renderComments() {
+      e.commentCountBadge.textContent = state.comments.length ? `(${state.comments.length}개)` : '';
+      const space = state.spaces.find(s=>s.id===state.activeSpaceId);
+      const isOp = space && isSpaceOperatorLocal(space);
+      if(!state.comments.length) {
+        e.commentsList.innerHTML=`<p class="text-xs text-slate-400 py-2">아직 댓글이 없습니다. 첫 댓글을 남겨보세요!</p>`;
+        return;
+      }
+      e.commentsList.innerHTML = state.comments.map(c=>`
+        <div class="flex gap-2.5 group">
+          <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-200 text-xs font-bold text-slate-600">${esc(c.author[0])}</div>
+          <div class="flex-1 rounded-xl bg-slate-50 px-3 py-2.5">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-xs font-semibold text-slate-700">${esc(c.author)}</span>
+              <div class="flex items-center gap-2">
+                <time class="text-[11px] text-slate-400">${fmt(c.createdAt)}</time>
+                ${isOp?`<button type="button" data-comment-id="${c.id}" class="delete-comment-btn hidden text-[11px] text-rose-500 hover:underline group-hover:block">삭제</button>`:''}
+              </div>
+            </div>
+            <p class="mt-1 text-sm text-slate-700 leading-relaxed">${esc(c.content)}</p>
+          </div>
+        </div>`).join('');
+    }
+
+    e.commentsList.addEventListener('click', async ev=>{
+      const btn = ev.target.closest('.delete-comment-btn');
+      if(!btn) return;
+      const cid = Number(btn.dataset.commentId);
+      showConfirm('댓글을 삭제하시겠습니까?', '이 댓글은 삭제 후 복구할 수 없습니다.', async()=>{
+        e.okConfirmBtn.disabled=true;
+        try {
+          await api(`/api/spaces/${state.activeSpaceId}/boards/${state.activeBoardId}/posts/${state.activePost.id}/comments/${cid}`,{method:'DELETE'});
+          state.comments = state.comments.filter(c=>c.id!==cid);
+          renderComments(); closeModal(e.confirmModal);
+          showToast('댓글이 삭제되었습니다.');
+        } catch(err){ showToast(err.message,'error'); e.okConfirmBtn.disabled=false; }
       });
+    });
 
-      // 초기 목록 로드
-      loadPosts(true);
+    e.createCommentForm.addEventListener('submit', async ev=>{
+      ev.preventDefault();
+      e.createCommentBtn.disabled=true;
+      try {
+        const newComment = await api(`/api/spaces/${state.activeSpaceId}/boards/${state.activeBoardId}/posts/${state.activePost.id}/comments`,{
+          method:'POST',
+          body:JSON.stringify({ author:e.commentAuthorInput.value.trim(), content:e.commentContentInput.value.trim() })
+        });
+        state.comments.push(newComment);
+        e.commentContentInput.value='';
+        renderComments();
+        showToast('댓글이 등록되었습니다.');
+      } catch(err){ showToast(err.message,'error'); }
+      finally{ e.createCommentBtn.disabled=false; }
+    });
+
+    /* ═══════════════ 로그인 / 로그아웃 ═══════════════ */
+    e.loginOpenBtn.addEventListener('click', ()=>{ e.loginForm.reset(); openModal(e.loginModal); setTimeout(()=>e.loginIdInput.focus(),50); });
+    e.loginForm.addEventListener('submit', async ev=>{
+      ev.preventDefault(); e.loginSubmitBtn.disabled=true;
+      try {
+        const { token, user } = await api('/api/auth/login',{ method:'POST', body:JSON.stringify({ id:e.loginIdInput.value.trim(), password:e.loginPasswordInput.value }) });
+        state.token=token; state.user=user;
+        localStorage.setItem('authToken', token);
+        closeModal(e.loginModal); updateAuthUI();
+        // superadmin이면 사용자 목록 로드
+        if(user.role==='superadmin') await loadAllUsers();
+        await loadSpaces();
+        // 자동으로 현재 뷰 갱신
+        if(state.activeSpaceId) { const sp=state.spaces.find(s=>s.id===state.activeSpaceId); if(sp) showSpaceView(); }
+        showToast(`${user.name}님, 환영합니다!`);
+      } catch(err){ showToast(err.message,'error'); }
+      finally{ e.loginSubmitBtn.disabled=false; }
+    });
+    e.logoutBtn.addEventListener('click', async()=>{
+      try { await api('/api/auth/logout',{method:'POST'}); } catch{}
+      state.token=null; state.user=null; state.allUsers=[];
+      localStorage.removeItem('authToken');
+      updateAuthUI(); await loadSpaces();
+      if(state.activeSpaceId) { const sp=state.spaces.find(s=>s.id===state.activeSpaceId); if(sp) showSpaceView(); }
+      showToast('로그아웃되었습니다.');
+    });
+
+    async function restoreSession() {
+      if(!state.token) return;
+      try {
+        state.user = await api('/api/auth/me');
+        if(state.user.role==='superadmin') await loadAllUsers();
+      } catch { state.token=null; state.user=null; localStorage.removeItem('authToken'); }
+      updateAuthUI();
+    }
+
+    async function loadAllUsers() {
+      state.allUsers = await api('/api/admin/users');
+    }
+
+    /* ═══════════════ 공간 생성 ═══════════════ */
+    e.addSpaceBtn.addEventListener('click', ()=>{ e.createSpaceForm.reset(); openModal(e.createSpaceModal); setTimeout(()=>e.spaceNameInput.focus(),50); });
+    e.createSpaceForm.addEventListener('submit', async ev=>{
+      ev.preventDefault(); e.createSpaceSubmitBtn.disabled=true;
+      try {
+        const newSpace = await api('/api/spaces',{ method:'POST', body:JSON.stringify({ name:e.spaceNameInput.value.trim(), description:e.spaceDescInput.value.trim(), isPublic:e.spaceIsPublic.checked }) });
+        newSpace.accessible=true; newSpace.operators=[];
+        state.spaces.push(newSpace);
+        state.boardsBySpace[newSpace.id]=[];
+        closeModal(e.createSpaceModal); e.createSpaceForm.reset();
+        state.activeSpaceId=newSpace.id; state.activeBoardId=null;
+        renderSpaceNav(); updateBreadcrumb(); showSpaceView();
+        showToast(`'${newSpace.name}' 공간이 생성되었습니다.`);
+      } catch(err){ showToast(err.message,'error'); }
+      finally{ e.createSpaceSubmitBtn.disabled=false; }
+    });
+
+    /* ═══════════════ 공간 삭제 ═══════════════ */
+    e.deleteSpaceBtn.addEventListener('click', ()=>{
+      const space = state.spaces.find(s=>s.id===state.activeSpaceId);
+      if(!space) return;
+      showConfirm('공간을 삭제하시겠습니까?', `'${space.name}' 공간과 하위 모든 게시판·게시글·댓글이 영구 삭제됩니다.`, async()=>{
+        e.okConfirmBtn.disabled=true;
+        try {
+          const r = await api(`/api/spaces/${space.id}`,{method:'DELETE'});
+          state.spaces = state.spaces.filter(s=>s.id!==space.id);
+          delete state.boardsBySpace[space.id];
+          state.activeSpaceId=null; state.activeBoardId=null;
+          renderSpaceNav(); e.welcomeView.classList.remove('hidden'); e.spaceView.classList.add('hidden');
+          closeModal(e.confirmModal); showToast(r.message||'공간이 삭제되었습니다.');
+        } catch(err){ showToast(err.message,'error'); e.okConfirmBtn.disabled=false; }
+      });
+    });
+
+    /* ═══════════════ 게시판 생성 ═══════════════ */
+    function openCreateBoardModal(spaceId) {
+      const space = state.spaces.find(s=>s.id===spaceId);
+      e.createBoardSpaceName.textContent = space ? `공간: ${space.name}` : '';
+      e.createBoardForm.dataset.spaceId = spaceId;
+      e.createBoardForm.reset(); openModal(e.createBoardModal);
+      setTimeout(()=>e.boardNameInput.focus(),50);
+    }
+    e.spaceAddBoardBtn.addEventListener('click', ()=>openCreateBoardModal(state.activeSpaceId));
+    e.createBoardForm.addEventListener('submit', async ev=>{
+      ev.preventDefault(); e.createBoardSubmitBtn.disabled=true;
+      const spaceId = Number(e.createBoardForm.dataset.spaceId);
+      try {
+        const newBoard = await api(`/api/spaces/${spaceId}/boards`,{ method:'POST', body:JSON.stringify({ name:e.boardNameInput.value.trim(), description:e.boardDescInput.value.trim() }) });
+        if(!state.boardsBySpace[spaceId]) state.boardsBySpace[spaceId]=[];
+        state.boardsBySpace[spaceId].push(newBoard);
+        await loadSpaces(); // 공간의 boardCount 갱신
+        closeModal(e.createBoardModal); e.createBoardForm.reset();
+        // 해당 공간이 현재 활성 공간이면 뷰 갱신
+        if(state.activeSpaceId===spaceId) showSpaceView();
+        renderSpaceNav();
+        showToast(`'${newBoard.name}' 게시판이 추가되었습니다.`);
+      } catch(err){ showToast(err.message,'error'); }
+      finally{ e.createBoardSubmitBtn.disabled=false; }
+    });
+
+    /* ═══════════════ 게시판 삭제 ═══════════════ */
+    e.boardDeleteBtn.addEventListener('click', ()=>{
+      const boards = state.boardsBySpace[state.activeSpaceId]||[];
+      const board = boards.find(b=>b.id===state.activeBoardId);
+      if(!board) return;
+      showConfirm('게시판을 삭제하시겠습니까?', `'${board.name}' 게시판과 모든 게시글·댓글이 영구 삭제됩니다.`, async()=>{
+        e.okConfirmBtn.disabled=true;
+        try {
+          const r = await api(`/api/spaces/${state.activeSpaceId}/boards/${board.id}`,{method:'DELETE'});
+          state.boardsBySpace[state.activeSpaceId] = boards.filter(b=>b.id!==board.id);
+          state.activeBoardId=null;
+          await loadSpaces();
+          renderSpaceNav(); updateBreadcrumb();
+          closeModal(e.confirmModal);
+          e.boardView.classList.add('hidden');
+          await showSpaceView();
+          showToast(r.message||'게시판이 삭제되었습니다.');
+        } catch(err){ showToast(err.message,'error'); e.okConfirmBtn.disabled=false; }
+      });
+    });
+
+    /* ═══════════════ 운영자 관리 (superadmin) ═══════════════ */
+    e.manageOperatorsBtn.addEventListener('click', ()=>openManageOpsModal());
+
+    function openManageOpsModal() {
+      const space = state.spaces.find(s=>s.id===state.activeSpaceId);
+      if(!space) return;
+      e.manageOpsSpaceName.textContent = `공간: ${space.name}`;
+      renderCurrentOperators(space);
+      // 추가 가능한 사용자 목록 (superadmin 제외)
+      const nonOperators = state.allUsers.filter(u=>u.role!=='superadmin'&&!space.operatorIds.includes(u.id));
+      e.addOperatorSelect.innerHTML = `<option value="">사용자 선택...</option>`
+        + nonOperators.map(u=>`<option value="${esc(u.id)}">${esc(u.name)} (${esc(u.id)}) - ${ROLE_LABEL[u.role]||u.role}</option>`).join('');
+      openModal(e.manageOpsModal);
+    }
+
+    function renderCurrentOperators(space) {
+      if(!space.operators||!space.operators.length) {
+        e.currentOperatorsList.innerHTML=`<p class="text-xs text-slate-400">지정된 운영자가 없습니다.</p>`;
+        return;
+      }
+      e.currentOperatorsList.innerHTML = space.operators.map(op=>`
+        <div class="flex items-center justify-between gap-2 rounded-xl bg-slate-50 px-3 py-2">
+          <div class="min-w-0">
+            <p class="text-xs font-semibold text-slate-700">${esc(op.name)}</p>
+            <p class="text-[11px] text-slate-400">${esc(op.id)}</p>
+          </div>
+          <button type="button" data-remove-op="${esc(op.id)}" class="shrink-0 rounded-lg px-2 py-1 text-[11px] font-semibold text-rose-600 transition hover:bg-rose-50">제거</button>
+        </div>`).join('');
+    }
+
+    e.currentOperatorsList.addEventListener('click', async ev=>{
+      const btn = ev.target.closest('[data-remove-op]');
+      if(!btn) return;
+      const userId = btn.dataset.removeOp;
+      try {
+        const updated = await api(`/api/spaces/${state.activeSpaceId}/operators/${userId}`,{method:'DELETE'});
+        const idx = state.spaces.findIndex(s=>s.id===state.activeSpaceId);
+        if(idx!==-1) state.spaces[idx] = { ...state.spaces[idx], ...updated };
+        const space = state.spaces[idx];
+        renderCurrentOperators(space); renderOperatorsList(space);
+        openManageOpsModal(); // 선택 목록 갱신
+        showToast('운영자가 제거되었습니다.');
+      } catch(err){ showToast(err.message,'error'); }
+    });
+
+    e.addOperatorBtn.addEventListener('click', async()=>{
+      const userId = e.addOperatorSelect.value;
+      if(!userId) { showToast('추가할 사용자를 선택해주세요.','error'); return; }
+      e.addOperatorBtn.disabled=true;
+      try {
+        const updated = await api(`/api/spaces/${state.activeSpaceId}/operators`,{ method:'POST', body:JSON.stringify({userId}) });
+        const idx = state.spaces.findIndex(s=>s.id===state.activeSpaceId);
+        if(idx!==-1) state.spaces[idx] = { ...state.spaces[idx], ...updated };
+        const space = state.spaces[idx];
+        renderCurrentOperators(space); renderOperatorsList(space);
+        openManageOpsModal(); // 선택 목록 갱신
+        showToast('운영자가 추가되었습니다.');
+      } catch(err){ showToast(err.message,'error'); }
+      finally{ e.addOperatorBtn.disabled=false; }
+    });
+
+    /* ═══════════════ 삭제 확인 모달 ═══════════════ */
+    e.cancelConfirmBtn.addEventListener('click', ()=>closeModal(e.confirmModal));
+    e.okConfirmBtn.addEventListener('click', ()=>{ if(typeof state.confirmCallback==='function') state.confirmCallback(); });
+
+    /* ─ ESC 키 ─ */
+    document.addEventListener('keydown', ev=>{
+      if(ev.key!=='Escape') return;
+      if(!e.confirmModal.classList.contains('hidden'))    { closeModal(e.confirmModal); return; }
+      if(!e.postDetailModal.classList.contains('hidden')) { closeModal(e.postDetailModal); return; }
+      if(!e.manageOpsModal.classList.contains('hidden'))  { closeModal(e.manageOpsModal); return; }
+      if(!e.createBoardModal.classList.contains('hidden')){ closeModal(e.createBoardModal); return; }
+      if(!e.createSpaceModal.classList.contains('hidden')){ closeModal(e.createSpaceModal); return; }
+      if(!e.loginModal.classList.contains('hidden'))      { closeModal(e.loginModal); return; }
+    });
+
+    /* ═══════════════ 초기화 ═══════════════ */
+    async function init() {
+      await restoreSession();
+      await loadSpaces();
+      // 첫 공개 공간 자동 선택
+      const first = state.spaces.find(s=>s.accessible);
+      if(first) {
+        state.activeSpaceId = first.id;
+        await loadBoardsForSpace(first.id);
+        renderSpaceNav(); updateBreadcrumb();
+        showSpaceView();
+      }
+    }
+    init();
     </script>
   </body>
 </html>
