@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>심플 게시판 | Simple Board</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css"
+    />
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: [
+                'Pretendard',
+                '-apple-system',
+                'BlinkMacSystemFont',
+                'Apple SD Gothic Neo',
+                'Malgun Gothic',
+                'sans-serif',
+              ],
+            },
+          },
+        },
+      };
+    </script>
+  </head>
+  <body class="min-h-screen bg-slate-50 text-slate-800 antialiased selection:bg-indigo-100 selection:text-indigo-700">
+    <!-- 상단 헤더 -->
+    <header class="sticky top-0 z-20 border-b border-slate-200/80 bg-white/85 backdrop-blur-md">
+      <div class="mx-auto flex max-w-5xl items-center justify-between px-4 py-4 sm:px-6">
+        <div class="flex items-center gap-3">
+          <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-sm shadow-indigo-200">
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"
+              />
+            </svg>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h1 class="text-lg font-bold tracking-tight text-slate-900">심플 게시판</h1>
+              <span class="rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-semibold text-indigo-600">
+                In-Memory
+              </span>
+            </div>
+            <p class="text-xs text-slate-500">서버 메모리에 임시 저장되는 Express CRUD 게시판</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <span
+            id="postCountBadge"
+            class="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-100/80 px-3 py-1 text-xs font-semibold text-slate-700"
+          >
+            전체 <span id="totalCount" class="text-indigo-600">0</span>개
+          </span>
+        </div>
+      </div>
+    </header>
+
+    <!-- 메인 컨텐츠 -->
+    <main class="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+      <div class="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
+        <!-- 좌측: 새 글 작성 폼 -->
+        <section class="lg:sticky lg:top-24 lg:col-span-4">
+          <div class="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm">
+            <div class="mb-5">
+              <h2 class="text-base font-bold text-slate-900">새 글 작성</h2>
+              <p class="mt-0.5 text-xs text-slate-500">제목과 내용을 입력해 바로 글을 남겨보세요.</p>
+            </div>
+
+            <form id="createForm" class="space-y-4">
+              <div>
+                <label for="authorInput" class="mb-1.5 block text-xs font-semibold text-slate-700">
+                  작성자
+                </label>
+                <input
+                  id="authorInput"
+                  type="text"
+                  maxlength="30"
+                  placeholder="익명 (비워두면 익명으로 등록)"
+                  class="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/15"
+                />
+              </div>
+
+              <div>
+                <label for="titleInput" class="mb-1.5 block text-xs font-semibold text-slate-700">
+                  제목 <span class="text-rose-500">*</span>
+                </label>
+                <input
+                  id="titleInput"
+                  type="text"
+                  maxlength="100"
+                  required
+                  placeholder="제목을 입력하세요"
+                  class="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/15"
+                />
+              </div>
+
+              <div>
+                <div class="mb-1.5 flex items-center justify-between">
+                  <label for="contentInput" class="block text-xs font-semibold text-slate-700">
+                    내용 <span class="text-rose-500">*</span>
+                  </label>
+                  <span id="contentCount" class="text-[11px] text-slate-400">0 / 5000</span>
+                </div>
+                <textarea
+                  id="contentInput"
+                  rows="5"
+                  maxlength="5000"
+                  required
+                  placeholder="내용을 자유롭게 작성하세요..."
+                  class="w-full resize-y rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2.5 text-sm leading-relaxed text-slate-900 placeholder-slate-400 transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/15"
+                ></textarea>
+              </div>
+
+              <button
+                id="submitBtn"
+                type="submit"
+                class="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-indigo-200 transition hover:bg-indigo-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+                <span>글 등록하기</span>
+              </button>
+            </form>
+          </div>
+        </section>
+
+        <!-- 우측: 게시글 목록 -->
+        <section class="lg:col-span-8">
+          <!-- 검색 및 새로고침 바 -->
+          <div class="mb-4 flex flex-col gap-2.5 sm:flex-row sm:items-center">
+            <div class="relative flex-1">
+              <svg
+                class="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+              <input
+                id="searchInput"
+                type="text"
+                placeholder="제목, 내용, 작성자로 검색..."
+                class="w-full rounded-xl border border-slate-200/80 bg-white py-2.5 pl-10 pr-9 text-sm text-slate-800 placeholder-slate-400 shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/15"
+              />
+              <button
+                id="clearSearchBtn"
+                type="button"
+                aria-label="검색어 지우기"
+                class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+              >
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <button
+              id="refreshBtn"
+              type="button"
+              class="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-200/80 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 active:scale-[0.99]"
+            >
+              <svg class="h-4 w-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
+              </svg>
+              <span>새로고침</span>
+            </button>
+          </div>
+
+          <!-- 게시글 리스트 -->
+          <div id="postList" class="space-y-3"></div>
+        </section>
+      </div>
+    </main>
+
+    <!-- 게시글 상세 / 수정 모달 -->
+    <div
+      id="postModal"
+      class="fixed inset-0 z-40 hidden items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+    >
+      <div class="w-full max-w-lg overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
+        <!-- 모달 헤더 -->
+        <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+          <div class="flex items-center gap-2">
+            <span id="modalPostIdBadge" class="rounded-md bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-indigo-600">
+              #1
+            </span>
+            <h3 id="modalHeaderTitle" class="text-sm font-bold text-slate-900">게시글 상세</h3>
+          </div>
+          <button
+            id="closePostModalBtn"
+            type="button"
+            aria-label="모달 닫기"
+            class="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+          >
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- 상세 보기 영역 -->
+        <div id="modalViewBody" class="px-6 py-5">
+          <h4 id="viewTitle" class="text-lg font-bold leading-snug text-slate-900 break-words"></h4>
+          <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
+            <span id="viewAuthor" class="font-medium text-slate-700"></span>
+            <span>·</span>
+            <span id="viewDate"></span>
+            <span id="viewEditedBadge" class="hidden rounded bg-slate-100 px-1.5 py-0.5 text-[11px] text-slate-500">
+              수정됨
+            </span>
+          </div>
+          <div class="mt-4 max-h-80 overflow-y-auto rounded-xl bg-slate-50 p-4">
+            <p id="viewContent" class="whitespace-pre-wrap break-words text-sm leading-relaxed text-slate-700"></p>
+          </div>
+
+          <div class="mt-5 flex items-center justify-between gap-2">
+            <button
+              id="modalDeleteBtn"
+              type="button"
+              class="rounded-xl px-3.5 py-2 text-xs font-semibold text-rose-600 transition hover:bg-rose-50"
+            >
+              삭제
+            </button>
+            <div class="flex items-center gap-2">
+              <button
+                id="modalSwitchEditBtn"
+                type="button"
+                class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+              >
+                수정하기
+              </button>
+              <button
+                id="modalViewCloseBtn"
+                type="button"
+                class="rounded-xl bg-slate-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-slate-800"
+              >
+                닫기
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 수정 폼 영역 -->
+        <form id="modalEditForm" class="hidden space-y-4 px-6 py-5">
+          <div>
+            <label for="editAuthorInput" class="mb-1.5 block text-xs font-semibold text-slate-700">
+              작성자
+            </label>
+            <input
+              id="editAuthorInput"
+              type="text"
+              maxlength="30"
+              placeholder="익명"
+              class="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2 text-sm text-slate-900 focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/15"
+            />
+          </div>
+          <div>
+            <label for="editTitleInput" class="mb-1.5 block text-xs font-semibold text-slate-700">
+              제목 <span class="text-rose-500">*</span>
+            </label>
+            <input
+              id="editTitleInput"
+              type="text"
+              maxlength="100"
+              required
+              class="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2 text-sm text-slate-900 focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/15"
+            />
+          </div>
+          <div>
+            <label for="editContentInput" class="mb-1.5 block text-xs font-semibold text-slate-700">
+              내용 <span class="text-rose-500">*</span>
+            </label>
+            <textarea
+              id="editContentInput"
+              rows="5"
+              maxlength="5000"
+              required
+              class="w-full resize-y rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2 text-sm leading-relaxed text-slate-900 focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/15"
+            ></textarea>
+          </div>
+          <div class="flex items-center justify-end gap-2 pt-1">
+            <button
+              id="modalCancelEditBtn"
+              type="button"
+              class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+            >
+              취소
+            </button>
+            <button
+              id="modalSaveEditBtn"
+              type="submit"
+              class="rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-60"
+            >
+              저장하기
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- 삭제 확인 모달 -->
+    <div
+      id="deleteModal"
+      class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+    >
+      <div class="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
+        <div class="flex h-11 w-11 items-center justify-center rounded-full bg-rose-50 text-rose-600">
+          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+            />
+          </svg>
+        </div>
+        <h3 class="mt-4 text-base font-bold text-slate-900">게시글을 삭제할까요?</h3>
+        <p id="deleteTargetTitle" class="mt-1.5 line-clamp-2 text-sm text-slate-500"></p>
+
+        <div class="mt-6 flex items-center justify-end gap-2">
+          <button
+            id="cancelDeleteBtn"
+            type="button"
+            class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+          >
+            취소
+          </button>
+          <button
+            id="confirmDeleteBtn"
+            type="button"
+            class="rounded-xl bg-rose-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-rose-700 disabled:opacity-60"
+          >
+            삭제하기
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 토스트 알림 -->
+    <div id="toast" class="pointer-events-none fixed bottom-5 right-5 z-50 hidden">
+      <div
+        id="toastBox"
+        class="flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-xs font-medium text-white shadow-lg"
+      >
+        <span id="toastMessage"></span>
+      </div>
+    </div>
+
+    <script>
+      const state = {
+        posts: [],
+        searchQuery: '',
+        activePostId: null,
+        openedDirectlyInEdit: false,
+        deleteTargetId: null,
+        toastTimer: null,
+      };
+
+      const elements = {
+        totalCount: document.getElementById('totalCount'),
+        createForm: document.getElementById('createForm'),
+        authorInput: document.getElementById('authorInput'),
+        titleInput: document.getElementById('titleInput'),
+        contentInput: document.getElementById('contentInput'),
+        contentCount: document.getElementById('contentCount'),
+        submitBtn: document.getElementById('submitBtn'),
+        searchInput: document.getElementById('searchInput'),
+        clearSearchBtn: document.getElementById('clearSearchBtn'),
+        refreshBtn: document.getElementById('refreshBtn'),
+        postList: document.getElementById('postList'),
+
+        postModal: document.getElementById('postModal'),
+        modalPostIdBadge: document.getElementById('modalPostIdBadge'),
+        modalHeaderTitle: document.getElementById('modalHeaderTitle'),
+        closePostModalBtn: document.getElementById('closePostModalBtn'),
+        modalViewBody: document.getElementById('modalViewBody'),
+        viewTitle: document.getElementById('viewTitle'),
+        viewAuthor: document.getElementById('viewAuthor'),
+        viewDate: document.getElementById('viewDate'),
+        viewEditedBadge: document.getElementById('viewEditedBadge'),
+        viewContent: document.getElementById('viewContent'),
+        modalDeleteBtn: document.getElementById('modalDeleteBtn'),
+        modalSwitchEditBtn: document.getElementById('modalSwitchEditBtn'),
+        modalViewCloseBtn: document.getElementById('modalViewCloseBtn'),
+
+        modalEditForm: document.getElementById('modalEditForm'),
+        editAuthorInput: document.getElementById('editAuthorInput'),
+        editTitleInput: document.getElementById('editTitleInput'),
+        editContentInput: document.getElementById('editContentInput'),
+        modalCancelEditBtn: document.getElementById('modalCancelEditBtn'),
+        modalSaveEditBtn: document.getElementById('modalSaveEditBtn'),
+
+        deleteModal: document.getElementById('deleteModal'),
+        deleteTargetTitle: document.getElementById('deleteTargetTitle'),
+        cancelDeleteBtn: document.getElementById('cancelDeleteBtn'),
+        confirmDeleteBtn: document.getElementById('confirmDeleteBtn'),
+
+        toast: document.getElementById('toast'),
+        toastBox: document.getElementById('toastBox'),
+        toastMessage: document.getElementById('toastMessage'),
+      };
+
+      function escapeHtml(value) {
+        return String(value)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      function formatDate(isoString) {
+        const date = new Date(isoString);
+        if (Number.isNaN(date.getTime())) return '';
+        const yyyy = date.getFullYear();
+        const mm = String(date.getMonth() + 1).padStart(2, '0');
+        const dd = String(date.getDate()).padStart(2, '0');
+        const hh = String(date.getHours()).padStart(2, '0');
+        const min = String(date.getMinutes()).padStart(2, '0');
+        return `${yyyy}.${mm}.${dd} ${hh}:${min}`;
+      }
+
+      function showToast(message, type = 'success') {
+        clearTimeout(state.toastTimer);
+        elements.toastMessage.textContent = message;
+        elements.toastBox.className =
+          type === 'error'
+            ? 'flex items-center gap-2 rounded-xl bg-rose-600 px-4 py-3 text-xs font-medium text-white shadow-lg'
+            : 'flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-xs font-medium text-white shadow-lg';
+        elements.toast.classList.remove('hidden');
+        state.toastTimer = setTimeout(() => {
+          elements.toast.classList.add('hidden');
+        }, 2800);
+      }
+
+      async function requestApi(url, options = {}) {
+        const response = await fetch(url, {
+          headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+          ...options,
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(data.error || '요청 처리 중 오류가 발생했습니다.');
+        }
+        return data;
+      }
+
+      function renderSkeleton() {
+        elements.postList.innerHTML = Array.from({ length: 3 })
+          .map(
+            () => `
+          <div class="animate-pulse rounded-2xl border border-slate-200/80 bg-white p-5">
+            <div class="flex items-center gap-2">
+              <div class="h-4 w-10 rounded bg-slate-200"></div>
+              <div class="h-4 w-16 rounded bg-slate-200"></div>
+              <div class="h-4 w-24 rounded bg-slate-100"></div>
+            </div>
+            <div class="mt-3 h-5 w-2/3 rounded bg-slate-200"></div>
+            <div class="mt-2 h-4 w-full rounded bg-slate-100"></div>
+          </div>`
+          )
+          .join('');
+      }
+
+      function renderPosts() {
+        elements.totalCount.textContent = state.posts.length;
+
+        if (state.posts.length === 0) {
+          const isSearching = state.searchQuery.trim().length > 0;
+          elements.postList.innerHTML = `
+            <div class="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center">
+              <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <p class="mt-3 text-sm font-semibold text-slate-700">
+                ${isSearching ? '검색 결과가 없습니다.' : '아직 작성된 게시글이 없습니다.'}
+              </p>
+              <p class="mt-1 text-xs text-slate-400">
+                ${
+                  isSearching
+                    ? '다른 검색어로 다시 검색해 보세요.'
+                    : '왼쪽 작성 폼에서 첫 번째 글을 남겨보세요!'
+                }
+              </p>
+            </div>
+          `;
+          return;
+        }
+
+        elements.postList.innerHTML = state.posts
+          .map((post) => {
+            const isEdited = post.updatedAt && post.updatedAt !== post.createdAt;
+            return `
+              <article
+                data-id="${post.id}"
+                class="group rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm transition hover:border-indigo-200 hover:shadow-md"
+              >
+                <div class="flex items-start justify-between gap-3">
+                  <div class="flex flex-wrap items-center gap-2 text-xs">
+                    <span class="rounded-md bg-slate-100 px-2 py-0.5 font-semibold text-slate-600">
+                      #${post.id}
+                    </span>
+                    <span class="font-semibold text-slate-700">${escapeHtml(post.author)}</span>
+                    <span class="text-slate-300">·</span>
+                    <time class="text-slate-400">${formatDate(post.createdAt)}</time>
+                    ${
+                      isEdited
+                        ? '<span class="rounded bg-indigo-50 px-1.5 py-0.5 text-[11px] font-medium text-indigo-600">수정됨</span>'
+                        : ''
+                    }
+                  </div>
+
+                  <div class="flex shrink-0 items-center gap-1">
+                    <button
+                      type="button"
+                      data-action="edit"
+                      data-id="${post.id}"
+                      class="rounded-lg px-2.5 py-1 text-xs font-medium text-slate-500 transition hover:bg-indigo-50 hover:text-indigo-600"
+                    >
+                      수정
+                    </button>
+                    <button
+                      type="button"
+                      data-action="delete"
+                      data-id="${post.id}"
+                      class="rounded-lg px-2.5 py-1 text-xs font-medium text-slate-500 transition hover:bg-rose-50 hover:text-rose-600"
+                    >
+                      삭제
+                    </button>
+                  </div>
+                </div>
+
+                <div data-action="view" data-id="${post.id}" class="mt-2.5 cursor-pointer">
+                  <h3 class="text-base font-bold text-slate-900 transition group-hover:text-indigo-600 line-clamp-1">
+                    ${escapeHtml(post.title)}
+                  </h3>
+                  <p class="mt-1.5 whitespace-pre-line text-sm leading-relaxed text-slate-600 line-clamp-2">
+                    ${escapeHtml(post.content)}
+                  </p>
+                </div>
+              </article>
+            `;
+          })
+          .join('');
+      }
+
+      async function loadPosts(showLoading = false) {
+        if (showLoading) renderSkeleton();
+        try {
+          const query = state.searchQuery.trim();
+          const url = query ? `/api/posts?q=${encodeURIComponent(query)}` : '/api/posts';
+          state.posts = await requestApi(url);
+          renderPosts();
+        } catch (error) {
+          showToast(error.message, 'error');
+        }
+      }
+
+      function openPostModal(post, editMode = false) {
+        state.activePostId = post.id;
+        state.openedDirectlyInEdit = editMode;
+        elements.modalPostIdBadge.textContent = `#${post.id}`;
+
+        elements.viewTitle.textContent = post.title;
+        elements.viewAuthor.textContent = post.author;
+        elements.viewDate.textContent = formatDate(post.createdAt);
+        elements.viewContent.textContent = post.content;
+
+        const isEdited = post.updatedAt && post.updatedAt !== post.createdAt;
+        elements.viewEditedBadge.classList.toggle('hidden', !isEdited);
+
+        elements.editAuthorInput.value = post.author;
+        elements.editTitleInput.value = post.title;
+        elements.editContentInput.value = post.content;
+
+        toggleModalEditMode(editMode);
+        elements.postModal.classList.remove('hidden');
+        elements.postModal.classList.add('flex');
+      }
+
+      function toggleModalEditMode(isEdit) {
+        elements.modalHeaderTitle.textContent = isEdit ? '게시글 수정' : '게시글 상세';
+        elements.modalViewBody.classList.toggle('hidden', isEdit);
+        elements.modalEditForm.classList.toggle('hidden', !isEdit);
+        if (isEdit) {
+          elements.editTitleInput.focus();
+        }
+      }
+
+      function closePostModal() {
+        elements.postModal.classList.add('hidden');
+        elements.postModal.classList.remove('flex');
+        state.activePostId = null;
+      }
+
+      function openDeleteModal(post) {
+        state.deleteTargetId = post.id;
+        elements.deleteTargetTitle.textContent = `"${post.title}" 글은 삭제 후 복구할 수 없습니다.`;
+        elements.deleteModal.classList.remove('hidden');
+        elements.deleteModal.classList.add('flex');
+      }
+
+      function closeDeleteModal() {
+        elements.deleteModal.classList.add('hidden');
+        elements.deleteModal.classList.remove('flex');
+        state.deleteTargetId = null;
+      }
+
+      // 글자 수 카운터
+      elements.contentInput.addEventListener('input', () => {
+        elements.contentCount.textContent = `${elements.contentInput.value.length} / 5000`;
+      });
+
+      // 새 글 등록
+      elements.createForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const author = elements.authorInput.value.trim();
+        const title = elements.titleInput.value.trim();
+        const content = elements.contentInput.value.trim();
+
+        if (!title || !content) {
+          showToast('제목과 내용을 모두 입력해주세요.', 'error');
+          return;
+        }
+
+        elements.submitBtn.disabled = true;
+        try {
+          await requestApi('/api/posts', {
+            method: 'POST',
+            body: JSON.stringify({ author, title, content }),
+          });
+          elements.createForm.reset();
+          elements.contentCount.textContent = '0 / 5000';
+          showToast('새 게시글이 등록되었습니다.');
+          await loadPosts();
+        } catch (error) {
+          showToast(error.message, 'error');
+        } finally {
+          elements.submitBtn.disabled = false;
+        }
+      });
+
+      // 검색 (디바운스)
+      let searchDebounce = null;
+      elements.searchInput.addEventListener('input', () => {
+        state.searchQuery = elements.searchInput.value;
+        elements.clearSearchBtn.classList.toggle('hidden', state.searchQuery.length === 0);
+        clearTimeout(searchDebounce);
+        searchDebounce = setTimeout(() => {
+          loadPosts();
+        }, 180);
+      });
+
+      elements.clearSearchBtn.addEventListener('click', () => {
+        elements.searchInput.value = '';
+        state.searchQuery = '';
+        elements.clearSearchBtn.classList.add('hidden');
+        loadPosts();
+      });
+
+      elements.refreshBtn.addEventListener('click', () => {
+        loadPosts(true);
+      });
+
+      // 목록 이벤트 위임 (상세, 수정, 삭제)
+      elements.postList.addEventListener('click', async (event) => {
+        const trigger = event.target.closest('[data-action]');
+        if (!trigger) return;
+
+        const action = trigger.dataset.action;
+        const id = Number(trigger.dataset.id);
+        const post = state.posts.find((item) => item.id === id);
+        if (!post) return;
+
+        if (action === 'view') {
+          try {
+            const latestPost = await requestApi(`/api/posts/${id}`);
+            openPostModal(latestPost, false);
+          } catch (error) {
+            showToast(error.message, 'error');
+            loadPosts();
+          }
+        } else if (action === 'edit') {
+          openPostModal(post, true);
+        } else if (action === 'delete') {
+          openDeleteModal(post);
+        }
+      });
+
+      // 상세/수정 모달 제어
+      elements.closePostModalBtn.addEventListener('click', closePostModal);
+      elements.modalViewCloseBtn.addEventListener('click', closePostModal);
+      elements.postModal.addEventListener('click', (event) => {
+        if (event.target === elements.postModal) closePostModal();
+      });
+
+      elements.modalSwitchEditBtn.addEventListener('click', () => {
+        state.openedDirectlyInEdit = false;
+        toggleModalEditMode(true);
+      });
+
+      elements.modalCancelEditBtn.addEventListener('click', () => {
+        if (state.openedDirectlyInEdit) {
+          closePostModal();
+        } else {
+          toggleModalEditMode(false);
+        }
+      });
+
+      elements.modalDeleteBtn.addEventListener('click', () => {
+        const post = state.posts.find((item) => item.id === state.activePostId);
+        closePostModal();
+        if (post) openDeleteModal(post);
+      });
+
+      elements.modalEditForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        if (!state.activePostId) return;
+
+        const author = elements.editAuthorInput.value.trim();
+        const title = elements.editTitleInput.value.trim();
+        const content = elements.editContentInput.value.trim();
+
+        if (!title || !content) {
+          showToast('제목과 내용을 모두 입력해주세요.', 'error');
+          return;
+        }
+
+        elements.modalSaveEditBtn.disabled = true;
+        try {
+          await requestApi(`/api/posts/${state.activePostId}`, {
+            method: 'PUT',
+            body: JSON.stringify({ author, title, content }),
+          });
+          closePostModal();
+          showToast('게시글이 수정되었습니다.');
+          await loadPosts();
+        } catch (error) {
+          showToast(error.message, 'error');
+        } finally {
+          elements.modalSaveEditBtn.disabled = false;
+        }
+      });
+
+      // 삭제 확인 모달 제어
+      elements.cancelDeleteBtn.addEventListener('click', closeDeleteModal);
+      elements.deleteModal.addEventListener('click', (event) => {
+        if (event.target === elements.deleteModal) closeDeleteModal();
+      });
+
+      elements.confirmDeleteBtn.addEventListener('click', async () => {
+        if (!state.deleteTargetId) return;
+
+        elements.confirmDeleteBtn.disabled = true;
+        try {
+          await requestApi(`/api/posts/${state.deleteTargetId}`, {
+            method: 'DELETE',
+          });
+          closeDeleteModal();
+          showToast('게시글이 삭제되었습니다.');
+          await loadPosts();
+        } catch (error) {
+          showToast(error.message, 'error');
+        } finally {
+          elements.confirmDeleteBtn.disabled = false;
+        }
+      });
+
+      // ESC 키로 모달 닫기
+      document.addEventListener('keydown', (event) => {
+        if (event.key !== 'Escape') return;
+        if (!elements.deleteModal.classList.contains('hidden')) {
+          closeDeleteModal();
+        } else if (!elements.postModal.classList.contains('hidden')) {
+          closePostModal();
+        }
+      });
+
+      // 초기 목록 로드
+      loadPosts(true);
+    </script>
+  </body>
+</html>
