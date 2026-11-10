@@ -58,17 +58,28 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// CORS 허용 미들웨어 (GitHub Pages, 외부 프론트엔드 연동 지원)
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(204);
+  }
+  next();
+});
+
 /* ══════════════════════════════════════════════════
    인-메모리 데이터 저장소
 ══════════════════════════════════════════════════ */
 
 /** 사용자 목록 (실제 서비스는 DB + bcrypt) */
 const USERS = [
-  { id: 'superadmin', name: '최고 관리자',    role: 'superadmin', password: 'super123' },
-  { id: 'op_tech',    name: '기술팀 운영자',   role: 'operator',   password: 'tech123'  },
-  { id: 'op_comm',    name: '커뮤니티 운영자', role: 'operator',   password: 'comm123'  },
-  { id: 'user1',      name: '홍길동',           role: 'user',       password: 'user123'  },
-  { id: 'user2',      name: '김철수',           role: 'user',       password: 'user456'  },
+  { id: 'superadmin', nickname: '최고 관리자',    role: 'superadmin', password: 'super123' },
+  { id: 'op_tech',    nickname: '기술팀 운영자',   role: 'operator',   password: 'tech123'  },
+  { id: 'op_comm',    nickname: '커뮤니티 운영자', role: 'operator',   password: 'comm123'  },
+  { id: 'user1',      nickname: '길동이',           role: 'user',       password: 'user123'  },
+  { id: 'user2',      nickname: '철수',             role: 'user',       password: 'user456'  },
 ];
 
 /** 세션 저장소: token → { userId, name, role } */
@@ -171,7 +182,7 @@ function parsePositiveInt(val) {
 }
 
 function userPublicInfo(user) {
-  return { id: user.id, name: user.name, role: user.role };
+  return { id: user.id, nickname: user.nickname, role: user.role };
 }
 
 /** 공간의 운영자 상세 정보 포함 보강 */
@@ -318,6 +329,55 @@ app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 /* ══════════════════════════════════════════════════
    인증 API
 ══════════════════════════════════════════════════ */
+
+/** 회원가입 (아이디, 비밀번호, 비밀번호 확인, 닉네임) */
+app.post('/api/auth/register', (req, res) => {
+  const { id, password, confirmPassword, nickname } = req.body || {};
+
+  if (typeof id !== 'string' || !id.trim()) {
+    return res.status(400).json({ error: '아이디를 입력해주세요.' });
+  }
+  if (typeof password !== 'string' || !password) {
+    return res.status(400).json({ error: '비밀번호를 입력해주세요.' });
+  }
+  if (password !== confirmPassword) {
+    return res.status(400).json({ error: '비밀번호가 일치하지 않습니다.' });
+  }
+  if (typeof nickname !== 'string' || !nickname.trim()) {
+    return res.status(400).json({ error: '닉네임을 입력해주세요.' });
+  }
+
+  const cleanId = id.trim();
+  const cleanNick = nickname.trim();
+
+  if (cleanId.length < 2 || cleanId.length > 20) {
+    return res.status(400).json({ error: '아이디는 2자 이상 20자 이하로 입력해주세요.' });
+  }
+  if (cleanNick.length < 2 || cleanNick.length > 20) {
+    return res.status(400).json({ error: '닉네임은 2자 이상 20자 이하로 입력해주세요.' });
+  }
+
+  if (USERS.some((u) => u.id === cleanId)) {
+    return res.status(409).json({ error: '이미 사용 중인 아이디입니다.' });
+  }
+  if (USERS.some((u) => u.nickname === cleanNick)) {
+    return res.status(409).json({ error: '이미 사용 중인 닉네임입니다.' });
+  }
+
+  const newUser = {
+    id: cleanId,
+    nickname: cleanNick,
+    role: 'user',
+    password: password,
+  };
+  USERS.push(newUser);
+
+  const token = generateToken();
+  const session = userPublicInfo(newUser);
+  sessions.set(token, session);
+
+  res.status(201).json({ token, user: session, message: '회원가입이 완료되었습니다.' });
+});
 
 app.post('/api/auth/login', (req, res) => {
   const { id, password } = req.body || {};
@@ -503,7 +563,7 @@ app.post('/api/spaces/:spaceId/boards/:boardId/posts', resolveSpace, requireSpac
   if (typeof content !== 'string' || content.trim().length === 0) return res.status(400).json({ error: '내용을 입력해주세요.' });
   const trimTitle   = title.trim();
   const trimContent = content.trim();
-  const trimAuthor  = (typeof author === 'string' && author.trim()) ? author.trim() : (req.user ? req.user.name : '익명');
+  const trimAuthor  = (typeof author === 'string' && author.trim()) ? author.trim() : (req.user ? req.user.nickname : '익명');
   if (trimTitle.length > 100)   return res.status(400).json({ error: '제목은 100자 이하로 입력해주세요.' });
   if (trimAuthor.length > 30)   return res.status(400).json({ error: '작성자는 30자 이하로 입력해주세요.' });
   if (trimContent.length > 5000) return res.status(400).json({ error: '내용은 5000자 이하로 입력해주세요.' });
@@ -564,7 +624,7 @@ app.post('/api/spaces/:spaceId/boards/:boardId/posts/:postId/comments', resolveS
   if (typeof content !== 'string' || content.trim().length === 0) return res.status(400).json({ error: '댓글 내용을 입력해주세요.' });
   if (content.trim().length > 1000) return res.status(400).json({ error: '댓글은 1000자 이하로 입력해주세요.' });
 
-  const trimAuthor = (typeof author === 'string' && author.trim()) ? author.trim() : (req.user ? req.user.name : '익명');
+  const trimAuthor = (typeof author === 'string' && author.trim()) ? author.trim() : (req.user ? req.user.nickname : '익명');
   if (trimAuthor.length > 30) return res.status(400).json({ error: '작성자는 30자 이하로 입력해주세요.' });
 
   const newComment = {
@@ -612,12 +672,12 @@ if (require.main === module) {
   app.listen(PORT, () => {
     console.log(`서버가 http://localhost:${PORT} 에서 실행 중입니다.`);
     console.log('');
-    console.log('계정 정보');
-    console.log('  최고 관리자 : superadmin / super123');
-    console.log('  기술팀 운영자  : op_tech   / tech123  (기술 공간 담당)');
-    console.log('  커뮤니티 운영자: op_comm   / comm123  (커뮤니티 공간 담당)');
-    console.log('  일반 사용자    : user1     / user123');
-    console.log('  일반 사용자    : user2     / user456');
+    console.log('계정 정보 (아이디 / 비밀번호 / 닉네임)');
+    console.log('  최고 관리자 : superadmin / super123 (닉네임: 최고 관리자)');
+    console.log('  기술팀 운영자  : op_tech   / tech123  (닉네임: 기술팀 운영자)');
+    console.log('  커뮤니티 운영자: op_comm   / comm123  (닉네임: 커뮤니티 운영자)');
+    console.log('  일반 사용자    : user1     / user123  (닉네임: 길동이)');
+    console.log('  일반 사용자    : user2     / user456  (닉네임: 철수)');
   });
 }
 

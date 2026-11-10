@@ -46,8 +46,18 @@
           <span id="bcBoard" class="hidden max-w-[120px] truncate font-medium text-violet-600"></span>
         </div>
         <div class="flex-1 sm:hidden"></div>
-        <!-- 우측 사용자/로그인 -->
+        <!-- 우측 사용자/로그인 및 API 설정 -->
         <div class="flex shrink-0 items-center gap-2">
+          <!-- API 서버 주소 설정 버튼 -->
+          <button id="apiConfigBtn" title="API 서버 주소 설정" type="button"
+            class="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50">
+            <span id="apiStatusDot" class="h-2 w-2 rounded-full bg-emerald-500"></span>
+            <span id="apiConfigLabel" class="hidden sm:inline text-[11px]">API: 상대경로</span>
+            <svg class="h-3.5 w-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+          </button>
           <div id="userBadge" class="hidden items-center gap-1.5">
             <span id="userRolePill" class="hidden rounded-full px-2 py-0.5 text-[11px] font-bold"></span>
             <span id="userNameText" class="hidden text-xs font-semibold text-slate-700 sm:block"></span>
@@ -185,8 +195,11 @@
                 <h3 class="mb-4 text-sm font-bold text-slate-900">새 글 작성</h3>
                 <form id="createPostForm" class="space-y-3">
                   <div>
-                    <label class="mb-1 block text-xs font-semibold text-slate-700">작성자</label>
-                    <input id="postAuthorInput" type="text" maxlength="30" placeholder="익명"
+                    <div class="mb-1 flex items-center justify-between">
+                      <label class="text-xs font-semibold text-slate-700">작성자 닉네임</label>
+                      <span id="authorAutoHint" class="text-[10px] text-violet-600 font-medium hidden">회원 닉네임 자동 연동</span>
+                    </div>
+                    <input id="postAuthorInput" type="text" maxlength="30" placeholder="익명 (로그인 시 닉네임 자동 입력)"
                       class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm placeholder-slate-400 transition focus:border-violet-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-violet-500/15"/>
                   </div>
                   <div>
@@ -236,33 +249,99 @@
       </main>
     </div>
 
-    <!-- ════════ 모달: 로그인 ════════ -->
+    <!-- ════════ 모달: 로그인 및 회원가입 (Auth Modal) ════════ -->
     <div id="loginModal" class="modal-backdrop fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm" role="dialog" aria-modal="true">
-      <div class="w-full max-w-sm rounded-2xl border border-slate-200 bg-white shadow-xl">
-        <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-          <h3 class="text-sm font-bold text-slate-900">로그인</h3>
-          <button class="modal-close rounded-lg p-1.5 text-slate-400 hover:bg-slate-100"><svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button>
+      <div class="w-full max-w-sm rounded-2xl border border-slate-200 bg-white shadow-xl overflow-hidden">
+        <!-- 탭 헤더: 로그인 / 회원가입 -->
+        <div class="flex items-center justify-between border-b border-slate-100 px-6 pt-4">
+          <div class="flex gap-4">
+            <button id="authTabLogin" type="button" class="pb-3 text-sm font-bold border-b-2 border-violet-600 text-violet-600 transition">
+              로그인
+            </button>
+            <button id="authTabSignup" type="button" class="pb-3 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-600 transition">
+              회원가입
+            </button>
+          </div>
+          <button class="modal-close -mt-2 rounded-lg p-1.5 text-slate-400 hover:bg-slate-100">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
         </div>
-        <form id="loginForm" class="space-y-4 px-6 py-5">
-          <div>
-            <label class="mb-1.5 block text-xs font-semibold text-slate-700">아이디</label>
-            <input id="loginIdInput" type="text" autocomplete="username" placeholder="아이디"
-              class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm placeholder-slate-400 transition focus:border-violet-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-violet-500/15"/>
-          </div>
-          <div>
-            <label class="mb-1.5 block text-xs font-semibold text-slate-700">비밀번호</label>
-            <input id="loginPasswordInput" type="password" autocomplete="current-password" placeholder="비밀번호"
-              class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm placeholder-slate-400 transition focus:border-violet-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-violet-500/15"/>
-          </div>
-          <div class="rounded-xl bg-violet-50 px-4 py-3 text-xs text-violet-700 leading-relaxed space-y-0.5">
-            <p class="font-semibold mb-1">테스트 계정</p>
-            <p>최고관리자: <code class="font-mono">superadmin</code> / <code class="font-mono">super123</code></p>
-            <p>기술팀 운영자: <code class="font-mono">op_tech</code> / <code class="font-mono">tech123</code></p>
-            <p>커뮤니티 운영자: <code class="font-mono">op_comm</code> / <code class="font-mono">comm123</code></p>
-            <p>일반 사용자: <code class="font-mono">user1</code> / <code class="font-mono">user123</code></p>
-          </div>
-          <button id="loginSubmitBtn" type="submit" class="flex w-full items-center justify-center rounded-xl bg-violet-600 py-2.5 text-sm font-semibold text-white shadow-sm shadow-violet-200 transition hover:bg-violet-700 disabled:opacity-60">로그인</button>
-        </form>
+
+        <!-- 1. 로그인 폼 -->
+        <div id="loginFormContainer" class="px-6 py-5">
+          <form id="loginForm" class="space-y-4">
+            <div>
+              <label class="mb-1.5 block text-xs font-semibold text-slate-700">아이디</label>
+              <input id="loginIdInput" type="text" autocomplete="username" placeholder="아이디 입력" required
+                class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm placeholder-slate-400 transition focus:border-violet-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-violet-500/15"/>
+            </div>
+            <div>
+              <label class="mb-1.5 block text-xs font-semibold text-slate-700">비밀번호</label>
+              <input id="loginPasswordInput" type="password" autocomplete="current-password" placeholder="비밀번호 입력" required
+                class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm placeholder-slate-400 transition focus:border-violet-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-violet-500/15"/>
+            </div>
+            <div class="rounded-xl bg-violet-50 px-4 py-3 text-xs text-violet-700 leading-relaxed space-y-0.5">
+              <p class="font-semibold mb-1">테스트 계정 (아이디 / 비밀번호)</p>
+              <p>최고관리자: <code class="font-mono">superadmin</code> / <code class="font-mono">super123</code></p>
+              <p>기술팀 운영자: <code class="font-mono">op_tech</code> / <code class="font-mono">tech123</code></p>
+              <p>커뮤니티 운영자: <code class="font-mono">op_comm</code> / <code class="font-mono">comm123</code></p>
+              <p>일반 사용자: <code class="font-mono">user1</code> / <code class="font-mono">user123</code></p>
+            </div>
+            <button id="loginSubmitBtn" type="submit" class="flex w-full items-center justify-center rounded-xl bg-violet-600 py-2.5 text-sm font-semibold text-white shadow-sm shadow-violet-200 transition hover:bg-violet-700 disabled:opacity-60">
+              로그인
+            </button>
+            <div class="text-center pt-1">
+              <button id="switchToSignupBtn" type="button" class="text-xs text-violet-600 hover:underline font-medium">
+                계정이 없으신가요? 회원가입하기
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- 2. 회원가입 폼 (아이디, 비밀번호, 비밀번호 확인, 닉네임) -->
+        <div id="signupFormContainer" class="hidden px-6 py-5">
+          <form id="signupForm" class="space-y-3.5">
+            <div>
+              <label class="mb-1 block text-xs font-semibold text-slate-700">
+                아이디 <span class="text-rose-500">*</span>
+              </label>
+              <input id="signupIdInput" type="text" maxlength="20" required placeholder="사용할 아이디 (순수 텍스트/영문/숫자)"
+                class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm placeholder-slate-400 transition focus:border-violet-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-violet-500/15"/>
+            </div>
+            <div>
+              <label class="mb-1 block text-xs font-semibold text-slate-700">
+                비밀번호 <span class="text-rose-500">*</span>
+              </label>
+              <input id="signupPasswordInput" type="password" required placeholder="비밀번호 입력"
+                class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm placeholder-slate-400 transition focus:border-violet-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-violet-500/15"/>
+            </div>
+            <div>
+              <label class="mb-1 block text-xs font-semibold text-slate-700">
+                비밀번호 확인 <span class="text-rose-500">*</span>
+              </label>
+              <input id="signupPasswordConfirmInput" type="password" required placeholder="비밀번호 다시 입력"
+                class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm placeholder-slate-400 transition focus:border-violet-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-violet-500/15"/>
+            </div>
+            <div>
+              <label class="mb-1 block text-xs font-semibold text-slate-700">
+                닉네임 <span class="text-rose-500">*</span>
+              </label>
+              <input id="signupNicknameInput" type="text" maxlength="20" required placeholder="게시판에서 사용할 닉네임 (실명X)"
+                class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm placeholder-slate-400 transition focus:border-violet-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-violet-500/15"/>
+              <p class="mt-1 text-[11px] text-slate-400">게시글 및 댓글 작성 시 실명 대신 표시됩니다.</p>
+            </div>
+            <button id="signupSubmitBtn" type="submit" class="flex w-full items-center justify-center rounded-xl bg-violet-600 py-2.5 text-sm font-semibold text-white shadow-sm shadow-violet-200 transition hover:bg-violet-700 disabled:opacity-60">
+              회원가입 완료
+            </button>
+            <div class="text-center pt-1">
+              <button id="switchToLoginBtn" type="button" class="text-xs text-violet-600 hover:underline font-medium">
+                이미 계정이 있으신가요? 로그인하기
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
 
@@ -411,7 +490,7 @@
             <div id="commentsList" class="space-y-3"></div>
             <!-- 댓글 작성 -->
             <form id="createCommentForm" class="mt-4 flex flex-col gap-2 sm:flex-row sm:items-end">
-              <input id="commentAuthorInput" type="text" maxlength="30" placeholder="작성자 (익명)"
+              <input id="commentAuthorInput" type="text" maxlength="30" placeholder="닉네임 (익명)"
                 class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm placeholder-slate-400 focus:border-violet-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-violet-500/15 sm:w-28"/>
               <input id="commentContentInput" type="text" maxlength="1000" required placeholder="댓글을 입력하세요..."
                 class="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm placeholder-slate-400 focus:border-violet-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-violet-500/15"/>
@@ -419,6 +498,55 @@
             </form>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- ════════ 모달: API 서버 주소 설정 ════════ -->
+    <div id="apiConfigModal" class="modal-backdrop fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm" role="dialog" aria-modal="true">
+      <div class="w-full max-w-md rounded-2xl border border-slate-200 bg-white shadow-xl">
+        <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+          <div class="flex items-center gap-2">
+            <div class="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-50 text-violet-600">
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" />
+              </svg>
+            </div>
+            <h3 class="text-sm font-bold text-slate-900">API 서버 환경 설정</h3>
+          </div>
+          <button class="modal-close rounded-lg p-1.5 text-slate-400 hover:bg-slate-100"><svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button>
+        </div>
+        <form id="apiConfigForm" class="space-y-4 px-6 py-5">
+          <div>
+            <label class="mb-1.5 block text-xs font-semibold text-slate-700">API 베이스 URL (Base URL)</label>
+            <input id="apiBaseUrlInput" type="text" placeholder="예: https://my-board-backend.onrender.com (비워두면 상대경로)"
+              class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs font-mono placeholder-slate-400 transition focus:border-violet-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-violet-500/15"/>
+            <p class="mt-1.5 text-[11px] text-slate-400 leading-relaxed">
+              · <strong>로컬 / 단일 호스팅</strong>: 비워두면 현재 웹페이지 도메인의 상대 경로(<code class="font-mono">/api/...</code>)를 사용합니다.<br/>
+              · <strong>GitHub Pages 호스팅</strong>: Render, Railway 등에 배포한 백엔드 주소를 입력하세요.
+            </p>
+          </div>
+
+          <div class="rounded-xl bg-slate-50 p-3 text-[11px] text-slate-500 space-y-1">
+            <div class="flex justify-between">
+              <span class="text-slate-400">현재 적용 중:</span>
+              <span id="currentApiDisplay" class="font-mono font-medium text-slate-700 truncate max-w-[220px]"></span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-400">URL 쿼리 파라미터:</span>
+              <code class="font-mono text-slate-600">?api=https://...</code>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between gap-2 pt-1">
+            <button id="resetApiConfigBtn" type="button" class="rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-50">
+              상대경로로 초기화
+            </button>
+            <div class="flex gap-2">
+              <button type="button" class="modal-close rounded-xl border border-slate-200 px-3.5 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50">취소</button>
+              <button id="saveApiConfigBtn" type="submit" class="rounded-xl bg-violet-600 px-4 py-2 text-xs font-semibold text-white shadow-sm shadow-violet-200 transition hover:bg-violet-700">저장 및 연결</button>
+            </div>
+          </div>
+        </form>
       </div>
     </div>
 
@@ -446,6 +574,53 @@
 
     <!-- ════════════════════ JS ════════════════════ -->
     <script>
+    /* ══════════════════════════════════════════════════════════════════
+     * [API 서버 환경 설정]
+     * 
+     * 1. 동일 도메인 또는 로컬 개발 (기본값):
+     *    CONFIG_API_BASE = '';
+     *    -> 특정 도메인이 없는 상대 경로('/api/...')로 자동 호출됩니다.
+     *
+     * 2. GitHub Pages + 외부 무료 백엔드 호스팅(Render, Railway 등):
+     *    - 방법 A: 아래 CONFIG_API_BASE 변수에 Render 배포 주소를 직접 입력
+     *             예: const CONFIG_API_BASE = 'https://my-board.onrender.com';
+     *    - 방법 B: 상단 우측 [API 설정] 버튼을 눌러 브라우저에서 직접 입력 후 저장
+     *    - 방법 C: 접속 주소창에 ?api=https://my-board.onrender.com 파라미터를 붙여 접속
+     * ══════════════════════════════════════════════════════════════════ */
+    const CONFIG_API_BASE = '';
+
+    function getApiBaseUrl() {
+      // 1순위: URL 쿼리 파라미터 (?api=...)
+      const param = new URLSearchParams(window.location.search).get('api');
+      if (param) return param.trim().replace(/\/+$/, '');
+
+      // 2순위: 브라우저 localStorage 저장값
+      const stored = localStorage.getItem('API_BASE_URL');
+      if (stored) return stored.trim().replace(/\/+$/, '');
+
+      // 3순위: 상단 설정 상수
+      if (CONFIG_API_BASE) return CONFIG_API_BASE.trim().replace(/\/+$/, '');
+
+      // 4순위: 기본값 (빈 문자열 = 상대 경로)
+      return '';
+    }
+
+    function setApiBaseUrl(url) {
+      const clean = (url || '').trim().replace(/\/+$/, '');
+      if (clean) {
+        localStorage.setItem('API_BASE_URL', clean);
+      } else {
+        localStorage.removeItem('API_BASE_URL');
+      }
+      updateApiStatusUI();
+    }
+
+    function buildApiUrl(endpoint) {
+      const base = getApiBaseUrl();
+      const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+      return base ? `${base}${cleanEndpoint}` : cleanEndpoint;
+    }
+
     /* ── 상태 ── */
     const state = {
       token: localStorage.getItem('authToken') || null,
@@ -487,10 +662,17 @@
       postContentCount:$('postContentCount'), createPostBtn:$('createPostBtn'),
       searchInput:$('searchInput'), clearSearchBtn:$('clearSearchBtn'),
       refreshPostsBtn:$('refreshPostsBtn'), postList:$('postList'),
-      // login modal
+      // auth tabs & forms
+      authTabLogin:$('authTabLogin'), authTabSignup:$('authTabSignup'),
+      loginFormContainer:$('loginFormContainer'), signupFormContainer:$('signupFormContainer'),
       loginModal:$('loginModal'), loginForm:$('loginForm'),
       loginIdInput:$('loginIdInput'), loginPasswordInput:$('loginPasswordInput'),
       loginSubmitBtn:$('loginSubmitBtn'),
+      signupForm:$('signupForm'), signupIdInput:$('signupIdInput'),
+      signupPasswordInput:$('signupPasswordInput'), signupPasswordConfirmInput:$('signupPasswordConfirmInput'),
+      signupNicknameInput:$('signupNicknameInput'), signupSubmitBtn:$('signupSubmitBtn'),
+      switchToSignupBtn:$('switchToSignupBtn'), switchToLoginBtn:$('switchToLoginBtn'),
+      authorAutoHint:$('authorAutoHint'),
       // create space
       createSpaceModal:$('createSpaceModal'), createSpaceForm:$('createSpaceForm'),
       spaceNameInput:$('spaceNameInput'), spaceDescInput:$('spaceDescInput'),
@@ -523,6 +705,11 @@
       confirmModal:$('confirmModal'), confirmTitle:$('confirmTitle'),
       confirmDesc:$('confirmDesc'), cancelConfirmBtn:$('cancelConfirmBtn'),
       okConfirmBtn:$('okConfirmBtn'),
+      // api config
+      apiConfigBtn:$('apiConfigBtn'), apiStatusDot:$('apiStatusDot'), apiConfigLabel:$('apiConfigLabel'),
+      apiConfigModal:$('apiConfigModal'), apiConfigForm:$('apiConfigForm'),
+      apiBaseUrlInput:$('apiBaseUrlInput'), currentApiDisplay:$('currentApiDisplay'),
+      resetApiConfigBtn:$('resetApiConfigBtn'), saveApiConfigBtn:$('saveApiConfigBtn'),
       // toast
       toast:$('toast'), toastBox:$('toastBox'), toastMsg:$('toastMsg'),
     };
@@ -566,14 +753,449 @@
       openModal(e.confirmModal);
     }
 
-    /* ── API ── */
+    /* ══════════════════════════════════════════════════════════════════
+     * [GitHub Pages / 오프라인 가상 데이터베이스 (localStorage)]
+     * 백엔드 서버가 응답하지 않을 때 브라우저의 localStorage를 DB로 사용
+     * ══════════════════════════════════════════════════════════════════ */
+    const MockDB = {
+      KEY_USERS: 'BOARD_VIRTUAL_USERS_V2',
+      KEY_SPACES: 'BOARD_VIRTUAL_SPACES_V2',
+      KEY_BOARDS: 'BOARD_VIRTUAL_BOARDS_V2',
+      KEY_POSTS: 'BOARD_VIRTUAL_POSTS_V2',
+      KEY_COMMENTS: 'BOARD_VIRTUAL_COMMENTS_V2',
+
+      init() {
+        if (!localStorage.getItem(this.KEY_USERS)) {
+          const defaultUsers = [
+            { id: 'superadmin', nickname: '최고 관리자', role: 'superadmin', password: 'super123' },
+            { id: 'op_tech',    nickname: '기술팀 운영자', role: 'operator',   password: 'tech123'  },
+            { id: 'op_comm',    nickname: '커뮤니티 운영자', role: 'operator', password: 'comm123'  },
+            { id: 'user1',      nickname: '길동이',       role: 'user',       password: 'user123'  },
+            { id: 'user2',      nickname: '철수',         role: 'user',       password: 'user456'  },
+          ];
+          localStorage.setItem(this.KEY_USERS, JSON.stringify(defaultUsers));
+        }
+
+        if (!localStorage.getItem(this.KEY_SPACES)) {
+          const defaultSpaces = [
+            { id: 1, name: '기술 공간', description: '개발·기술 관련 게시판 모음', operatorIds: ['op_tech'], isPublic: true, createdAt: new Date(Date.now() - 1000*60*180).toISOString() },
+            { id: 2, name: '커뮤니티 공간', description: '자유로운 소통과 정보 공유', operatorIds: ['op_comm'], isPublic: true, createdAt: new Date(Date.now() - 1000*60*120).toISOString() },
+            { id: 3, name: '내부 운영 공간', description: '운영진 전용 비공개 공간', operatorIds: ['op_tech', 'op_comm'], isPublic: false, createdAt: new Date(Date.now() - 1000*60*60).toISOString() },
+          ];
+          localStorage.setItem(this.KEY_SPACES, JSON.stringify(defaultSpaces));
+        }
+
+        if (!localStorage.getItem(this.KEY_BOARDS)) {
+          const defaultBoards = [
+            { id: 1, spaceId: 1, name: '개발 게시판', description: '개발 관련 이야기', createdAt: new Date(Date.now() - 1000*60*175).toISOString() },
+            { id: 2, spaceId: 1, name: '기술 Q&A', description: '기술 질문과 답변', createdAt: new Date(Date.now() - 1000*60*160).toISOString() },
+            { id: 3, spaceId: 2, name: '자유게시판', description: '자유로운 이야기', createdAt: new Date(Date.now() - 1000*60*115).toISOString() },
+            { id: 4, spaceId: 2, name: '공지사항', description: '중요 공지를 확인하세요', createdAt: new Date(Date.now() - 1000*60*100).toISOString() },
+            { id: 5, spaceId: 3, name: '팀 공지', description: '운영진 내부 공지', createdAt: new Date(Date.now() - 1000*60*55).toISOString() },
+          ];
+          localStorage.setItem(this.KEY_BOARDS, JSON.stringify(defaultBoards));
+        }
+
+        if (!localStorage.getItem(this.KEY_POSTS)) {
+          const defaultPosts = [
+            { id: 2, boardId: 1, spaceId: 1, title: 'Node.js 18 주요 변경점', author: '기술팀 운영자', authorId: 'op_tech', content: 'Node.js 18에서는 Fetch API가 기본 내장되었습니다.\n또한 V8 업그레이드로 성능이 대폭 향상되었습니다.', createdAt: new Date(Date.now() - 1000*60*165).toISOString(), updatedAt: new Date(Date.now() - 1000*60*165).toISOString() },
+            { id: 1, boardId: 1, spaceId: 1, title: '개발 게시판을 개설했습니다', author: '기술팀 운영자', authorId: 'op_tech', content: '기술 공간 개발 게시판에 오신 것을 환영합니다.\n개발 관련 주제를 자유롭게 나눠요!', createdAt: new Date(Date.now() - 1000*60*175).toISOString(), updatedAt: new Date(Date.now() - 1000*60*175).toISOString() },
+            { id: 4, boardId: 2, spaceId: 1, title: 'Express 5 vs 4 차이점', author: '길동이', authorId: 'user1', content: 'Express 5에서는 async 에러 처리가 개선되어 try/catch 없이도 에러 미들웨어로 전달됩니다.', createdAt: new Date(Date.now() - 1000*60*155).toISOString(), updatedAt: new Date(Date.now() - 1000*60*155).toISOString() },
+            { id: 3, boardId: 2, spaceId: 1, title: 'REST API 계층형 URL 설계 질문', author: '철수', authorId: 'user2', content: '/spaces/:id/boards/:id/posts 처럼 계층 구조를 그대로 URL에 반영하는 것이 맞나요?', createdAt: new Date(Date.now() - 1000*60*158).toISOString(), updatedAt: new Date(Date.now() - 1000*60*158).toISOString() },
+            { id: 6, boardId: 3, spaceId: 2, title: '오늘 날씨 정말 좋네요', author: '길동이', authorId: 'user1', content: '가을 햇살이 따뜻하고 좋습니다. 산책하기 딱 좋은 날씨예요 :)', createdAt: new Date(Date.now() - 1000*60*105).toISOString(), updatedAt: new Date(Date.now() - 1000*60*105).toISOString() },
+            { id: 5, boardId: 3, spaceId: 2, title: '자유게시판 이용 안내', author: '커뮤니티 운영자', authorId: 'op_comm', content: '주제 제한 없이 자유롭게 이야기 나눌 수 있는 공간입니다.\n서로 존중하는 분위기를 만들어 주세요.', createdAt: new Date(Date.now() - 1000*60*115).toISOString(), updatedAt: new Date(Date.now() - 1000*60*115).toISOString() },
+            { id: 8, boardId: 4, spaceId: 2, title: '11월 커뮤니티 이벤트 안내', author: '커뮤니티 운영자', authorId: 'op_comm', content: '11월 한 달간 커뮤니티 활성화 이벤트를 진행합니다! 많은 참여 부탁드립니다.', createdAt: new Date(Date.now() - 1000*60*95).toISOString(), updatedAt: new Date(Date.now() - 1000*60*95).toISOString() },
+            { id: 7, boardId: 4, spaceId: 2, title: '공지사항 게시판 개설 안내', author: '커뮤니티 운영자', authorId: 'op_comm', content: '커뮤니티 공간에 공지사항 게시판이 새로 개설되었습니다.', createdAt: new Date(Date.now() - 1000*60*100).toISOString(), updatedAt: new Date(Date.now() - 1000*60*100).toISOString() },
+            { id: 10, boardId: 5, spaceId: 3, title: '11월 운영 미팅 결과 공유', author: '최고 관리자', authorId: 'superadmin', content: '[내부 문서] 11월 운영 미팅에서 논의된 사항을 정리했습니다. 운영진만 열람 가능합니다.', createdAt: new Date(Date.now() - 1000*60*45).toISOString(), updatedAt: new Date(Date.now() - 1000*60*45).toISOString() },
+            { id: 9,  boardId: 5, spaceId: 3, title: '팀 공지 게시판 개설', author: '최고 관리자', authorId: 'superadmin', content: '운영진 전용 비공개 공간의 팀 공지 게시판이 개설되었습니다.', createdAt: new Date(Date.now() - 1000*60*55).toISOString(), updatedAt: new Date(Date.now() - 1000*60*55).toISOString() },
+          ];
+          localStorage.setItem(this.KEY_POSTS, JSON.stringify(defaultPosts));
+        }
+
+        if (!localStorage.getItem(this.KEY_COMMENTS)) {
+          const defaultComments = [
+            { id: 1, postId: 1, boardId: 1, spaceId: 1, author: '철수', content: '환영합니다! 좋은 정보 많이 나눠요 :)', createdAt: new Date(Date.now() - 1000*60*172).toISOString() },
+            { id: 2, postId: 1, boardId: 1, spaceId: 1, author: '길동이', content: '잘 부탁드립니다!', createdAt: new Date(Date.now() - 1000*60*170).toISOString() },
+            { id: 3, postId: 3, boardId: 2, spaceId: 1, author: '기술팀 운영자', content: '네, 계층형 URL은 소유 관계가 명확할 때 적합합니다. 이 프로젝트가 좋은 예시가 될 것 같네요!', createdAt: new Date(Date.now() - 1000*60*150).toISOString() },
+            { id: 4, postId: 6, boardId: 3, spaceId: 2, author: '철수', content: '맞아요! 오늘 같은 날씨에는 커피 한 잔이 딱이죠.', createdAt: new Date(Date.now() - 1000*60*103).toISOString() },
+          ];
+          localStorage.setItem(this.KEY_COMMENTS, JSON.stringify(defaultComments));
+        }
+      },
+
+      getUsers() { this.init(); return JSON.parse(localStorage.getItem(this.KEY_USERS) || '[]'); },
+      saveUsers(u) { localStorage.setItem(this.KEY_USERS, JSON.stringify(u)); },
+
+      getSpaces() { this.init(); return JSON.parse(localStorage.getItem(this.KEY_SPACES) || '[]'); },
+      saveSpaces(s) { localStorage.setItem(this.KEY_SPACES, JSON.stringify(s)); },
+
+      getBoards() { this.init(); return JSON.parse(localStorage.getItem(this.KEY_BOARDS) || '[]'); },
+      saveBoards(b) { localStorage.setItem(this.KEY_BOARDS, JSON.stringify(b)); },
+
+      getPosts() { this.init(); return JSON.parse(localStorage.getItem(this.KEY_POSTS) || '[]'); },
+      savePosts(p) { localStorage.setItem(this.KEY_POSTS, JSON.stringify(p)); },
+
+      getComments() { this.init(); return JSON.parse(localStorage.getItem(this.KEY_COMMENTS) || '[]'); },
+      saveComments(c) { localStorage.setItem(this.KEY_COMMENTS, JSON.stringify(c)); },
+
+      handle(endpoint, opts = {}) {
+        this.init();
+        const method = (opts.method || 'GET').toUpperCase();
+        const body = opts.body ? JSON.parse(opts.body) : {};
+        const urlObj = new URL(endpoint, 'http://localhost');
+        const pathname = urlObj.pathname;
+        const searchParams = urlObj.searchParams;
+        const currentUser = state.user;
+
+        // 1. POST /api/auth/register
+        if (pathname === '/api/auth/register' && method === 'POST') {
+          const { id, password, confirmPassword, nickname } = body;
+          if (!id || !id.trim()) throw new Error('아이디를 입력해주세요.');
+          if (!password) throw new Error('비밀번호를 입력해주세요.');
+          if (password !== confirmPassword) throw new Error('비밀번호가 일치하지 않습니다.');
+          if (!nickname || !nickname.trim()) throw new Error('닉네임을 입력해주세요.');
+
+          const cleanId = id.trim();
+          const cleanNick = nickname.trim();
+          const users = this.getUsers();
+          if (users.some(u => u.id === cleanId)) throw new Error('이미 사용 중인 아이디입니다.');
+          if (users.some(u => u.nickname === cleanNick)) throw new Error('이미 사용 중인 닉네임입니다.');
+
+          const newUser = { id: cleanId, nickname: cleanNick, role: 'user', password };
+          users.push(newUser);
+          this.saveUsers(users);
+
+          const token = 'mock-token-' + cleanId + '-' + Date.now();
+          const userSession = { id: newUser.id, nickname: newUser.nickname, role: newUser.role };
+          return { token, user: userSession, message: '회원가입이 완료되었습니다.' };
+        }
+
+        // 2. POST /api/auth/login
+        if (pathname === '/api/auth/login' && method === 'POST') {
+          const { id, password } = body;
+          if (!id || !password) throw new Error('아이디와 비밀번호를 입력해주세요.');
+          const users = this.getUsers();
+          const user = users.find(u => u.id === id.trim() && u.password === password);
+          if (!user) throw new Error('아이디 또는 비밀번호가 올바르지 않습니다.');
+          const token = 'mock-token-' + user.id + '-' + Date.now();
+          const userSession = { id: user.id, nickname: user.nickname, role: user.role };
+          return { token, user: userSession };
+        }
+
+        // 3. POST /api/auth/logout
+        if (pathname === '/api/auth/logout' && method === 'POST') {
+          return { message: '로그아웃되었습니다.' };
+        }
+
+        // 4. GET /api/auth/me
+        if (pathname === '/api/auth/me' && method === 'GET') {
+          if (!currentUser) throw new Error('인증되지 않은 사용자입니다.');
+          return currentUser;
+        }
+
+        // 5. GET /api/admin/users
+        if (pathname === '/api/admin/users' && method === 'GET') {
+          return this.getUsers().map(u => ({ id: u.id, nickname: u.nickname, role: u.role }));
+        }
+
+        // 6. GET /api/spaces
+        if (pathname === '/api/spaces' && method === 'GET') {
+          const users = this.getUsers();
+          const boards = this.getBoards();
+          const posts = this.getPosts();
+          const spaces = this.getSpaces();
+
+          return spaces.map(space => {
+            const accessible = space.isPublic || (currentUser && (currentUser.role === 'superadmin' || (currentUser.role === 'operator' && (space.operatorIds||[]).includes(currentUser.id))));
+            const operators = (space.operatorIds || [])
+              .map(id => users.find(u => u.id === id))
+              .filter(Boolean)
+              .map(u => ({ id: u.id, nickname: u.nickname, role: u.role }));
+            const spaceBoards = boards.filter(b => b.spaceId === space.id);
+            const boardCount = spaceBoards.length;
+            const postCount = posts.filter(p => p.spaceId === space.id).length;
+            return { ...space, operators, boardCount, postCount, accessible };
+          });
+        }
+
+        // 7. POST /api/spaces
+        if (pathname === '/api/spaces' && method === 'POST') {
+          if (currentUser?.role !== 'superadmin') throw new Error('최고 관리자 권한이 필요합니다.');
+          const { name, description, isPublic } = body;
+          if (!name || !name.trim()) throw new Error('공간 이름을 입력해주세요.');
+          const spaces = this.getSpaces();
+          const newSpace = {
+            id: Date.now(),
+            name: name.trim(),
+            description: description ? description.trim() : '',
+            operatorIds: [],
+            isPublic: isPublic !== false,
+            createdAt: new Date().toISOString(),
+          };
+          spaces.push(newSpace);
+          this.saveSpaces(spaces);
+          return { ...newSpace, operators: [], boardCount: 0, postCount: 0, accessible: true };
+        }
+
+        // 8. DELETE /api/spaces/:id
+        const spaceDelMatch = pathname.match(/^\/api\/spaces\/(\d+)$/);
+        if (spaceDelMatch && method === 'DELETE') {
+          if (currentUser?.role !== 'superadmin') throw new Error('최고 관리자 권한이 필요합니다.');
+          const sid = Number(spaceDelMatch[1]);
+          let spaces = this.getSpaces().filter(s => s.id !== sid);
+          let boards = this.getBoards().filter(b => b.spaceId !== sid);
+          let posts = this.getPosts().filter(p => p.spaceId !== sid);
+          let comments = this.getComments().filter(c => c.spaceId !== sid);
+          this.saveSpaces(spaces); this.saveBoards(boards); this.savePosts(posts); this.saveComments(comments);
+          return { message: '공간이 삭제되었습니다.' };
+        }
+
+        // 9. POST /api/spaces/:id/operators
+        const opAddMatch = pathname.match(/^\/api\/spaces\/(\d+)\/operators$/);
+        if (opAddMatch && method === 'POST') {
+          if (currentUser?.role !== 'superadmin') throw new Error('최고 관리자 권한이 필요합니다.');
+          const sid = Number(opAddMatch[1]);
+          const { userId } = body;
+          const spaces = this.getSpaces();
+          const space = spaces.find(s => s.id === sid);
+          if (!space) throw new Error('공간을 찾을 수 없습니다.');
+          if (!space.operatorIds) space.operatorIds = [];
+          if (!space.operatorIds.includes(userId)) space.operatorIds.push(userId);
+          this.saveSpaces(spaces);
+          return space;
+        }
+
+        // 10. DELETE /api/spaces/:id/operators/:uid
+        const opDelMatch = pathname.match(/^\/api\/spaces\/(\d+)\/operators\/([^/]+)$/);
+        if (opDelMatch && method === 'DELETE') {
+          if (currentUser?.role !== 'superadmin') throw new Error('최고 관리자 권한이 필요합니다.');
+          const sid = Number(opDelMatch[1]);
+          const uid = opDelMatch[2];
+          const spaces = this.getSpaces();
+          const space = spaces.find(s => s.id === sid);
+          if (space && space.operatorIds) {
+            space.operatorIds = space.operatorIds.filter(id => id !== uid);
+            this.saveSpaces(spaces);
+          }
+          return space;
+        }
+
+        // 11. GET /api/spaces/:sid/boards
+        const boardsGetMatch = pathname.match(/^\/api\/spaces\/(\d+)\/boards$/);
+        if (boardsGetMatch && method === 'GET') {
+          const sid = Number(boardsGetMatch[1]);
+          const boards = this.getBoards().filter(b => b.spaceId === sid);
+          const posts = this.getPosts();
+          return boards.map(b => ({
+            ...b,
+            postCount: posts.filter(p => p.boardId === b.id).length
+          }));
+        }
+
+        // 12. POST /api/spaces/:sid/boards
+        if (boardsGetMatch && method === 'POST') {
+          const sid = Number(boardsGetMatch[1]);
+          const { name, description } = body;
+          if (!name || !name.trim()) throw new Error('게시판 이름을 입력해주세요.');
+          const boards = this.getBoards();
+          const newBoard = {
+            id: Date.now(),
+            spaceId: sid,
+            name: name.trim(),
+            description: description ? description.trim() : '',
+            createdAt: new Date().toISOString(),
+          };
+          boards.push(newBoard);
+          this.saveBoards(boards);
+          return { ...newBoard, postCount: 0 };
+        }
+
+        // 13. DELETE /api/spaces/:sid/boards/:bid
+        const boardDelMatch = pathname.match(/^\/api\/spaces\/(\d+)\/boards\/(\d+)$/);
+        if (boardDelMatch && method === 'DELETE') {
+          const bid = Number(boardDelMatch[2]);
+          let boards = this.getBoards().filter(b => b.id !== bid);
+          let posts = this.getPosts().filter(p => p.boardId !== bid);
+          let comments = this.getComments().filter(c => c.boardId !== bid);
+          this.saveBoards(boards); this.savePosts(posts); this.saveComments(comments);
+          return { message: '게시판이 삭제되었습니다.' };
+        }
+
+        // 14. GET /api/spaces/:sid/boards/:bid/posts
+        const postsGetMatch = pathname.match(/^\/api\/spaces\/(\d+)\/boards\/(\d+)\/posts$/);
+        if (postsGetMatch && method === 'GET') {
+          const bid = Number(postsGetMatch[2]);
+          const q = (searchParams.get('q') || '').trim().toLowerCase();
+          let posts = this.getPosts().filter(p => p.boardId === bid).sort((a,b) => b.id - a.id);
+          if (q) {
+            posts = posts.filter(p => p.title.toLowerCase().includes(q) || p.content.toLowerCase().includes(q) || p.author.toLowerCase().includes(q));
+          }
+          const comments = this.getComments();
+          return posts.map(p => ({
+            ...p,
+            commentCount: comments.filter(c => c.postId === p.id).length
+          }));
+        }
+
+        // 15. POST /api/spaces/:sid/boards/:bid/posts
+        if (postsGetMatch && method === 'POST') {
+          const sid = Number(postsGetMatch[1]);
+          const bid = Number(postsGetMatch[2]);
+          const { title, content, author } = body;
+          if (!title || !title.trim()) throw new Error('제목을 입력해주세요.');
+          if (!content || !content.trim()) throw new Error('내용을 입력해주세요.');
+          const posts = this.getPosts();
+          const cleanAuthor = (currentUser ? currentUser.nickname : (author && author.trim() ? author.trim() : '익명'));
+          const now = new Date().toISOString();
+          const newPost = {
+            id: Date.now(),
+            boardId: bid,
+            spaceId: sid,
+            title: title.trim(),
+            content: content.trim(),
+            author: cleanAuthor,
+            authorId: currentUser ? currentUser.id : null,
+            createdAt: now,
+            updatedAt: now,
+          };
+          posts.unshift(newPost);
+          this.savePosts(posts);
+          return { ...newPost, commentCount: 0 };
+        }
+
+        // 16. GET /api/spaces/:sid/boards/:bid/posts/:pid
+        const postDetailMatch = pathname.match(/^\/api\/spaces\/(\d+)\/boards\/(\d+)\/posts\/(\d+)$/);
+        if (postDetailMatch && method === 'GET') {
+          const pid = Number(postDetailMatch[3]);
+          const post = this.getPosts().find(p => p.id === pid);
+          if (!post) throw new Error('게시글을 찾을 수 없습니다.');
+          const commentCount = this.getComments().filter(c => c.postId === pid).length;
+          return { ...post, commentCount };
+        }
+
+        // 17. PUT /api/spaces/:sid/boards/:bid/posts/:pid
+        if (postDetailMatch && method === 'PUT') {
+          const pid = Number(postDetailMatch[3]);
+          const { title, content, author } = body;
+          if (!title || !title.trim()) throw new Error('제목을 입력해주세요.');
+          if (!content || !content.trim()) throw new Error('내용을 입력해주세요.');
+          const posts = this.getPosts();
+          const post = posts.find(p => p.id === pid);
+          if (!post) throw new Error('게시글을 찾을 수 없습니다.');
+          post.title = title.trim();
+          post.content = content.trim();
+          if (author) post.author = author.trim();
+          post.updatedAt = new Date().toISOString();
+          this.savePosts(posts);
+          return post;
+        }
+
+        // 18. DELETE /api/spaces/:sid/boards/:bid/posts/:pid
+        if (postDetailMatch && method === 'DELETE') {
+          const pid = Number(postDetailMatch[3]);
+          let posts = this.getPosts().filter(p => p.id !== pid);
+          let comments = this.getComments().filter(c => c.postId !== pid);
+          this.savePosts(posts); this.saveComments(comments);
+          return { message: '게시글이 삭제되었습니다.' };
+        }
+
+        // 19. GET /api/spaces/:sid/boards/:bid/posts/:pid/comments
+        const commentsMatch = pathname.match(/^\/api\/spaces\/(\d+)\/boards\/(\d+)\/posts\/(\d+)\/comments$/);
+        if (commentsMatch && method === 'GET') {
+          const pid = Number(commentsMatch[3]);
+          return this.getComments().filter(c => c.postId === pid);
+        }
+
+        // 20. POST /api/spaces/:sid/boards/:bid/posts/:pid/comments
+        if (commentsMatch && method === 'POST') {
+          const sid = Number(commentsMatch[1]);
+          const bid = Number(commentsMatch[2]);
+          const pid = Number(commentsMatch[3]);
+          const { content, author } = body;
+          if (!content || !content.trim()) throw new Error('댓글 내용을 입력해주세요.');
+          const comments = this.getComments();
+          const cleanAuthor = (currentUser ? currentUser.nickname : (author && author.trim() ? author.trim() : '익명'));
+          const newComment = {
+            id: Date.now(),
+            postId: pid,
+            boardId: bid,
+            spaceId: sid,
+            author: cleanAuthor,
+            content: content.trim(),
+            createdAt: new Date().toISOString(),
+          };
+          comments.push(newComment);
+          this.saveComments(comments);
+          return newComment;
+        }
+
+        // 21. DELETE /api/spaces/:sid/boards/:bid/posts/:pid/comments/:cid
+        const commentDelMatch = pathname.match(/^\/api\/spaces\/(\d+)\/boards\/(\d+)\/posts\/(\d+)\/comments\/(\d+)$/);
+        if (commentDelMatch && method === 'DELETE') {
+          const cid = Number(commentDelMatch[4]);
+          let comments = this.getComments().filter(c => c.id !== cid);
+          this.saveComments(comments);
+          return { message: '댓글이 삭제되었습니다.' };
+        }
+
+        throw new Error('요청한 경로를 찾을 수 없습니다 (404)');
+      }
+    };
+
+    /* ── API 환경 상태 UI ── */
+    function updateApiStatusUI(isConnected = true, isMock = false) {
+      const base = getApiBaseUrl();
+      if (isMock) {
+        e.apiConfigLabel.textContent = 'API: 가상DB (로컬)';
+        e.currentApiDisplay.textContent = '브라우저 localStorage 가상 DB';
+        e.apiStatusDot.className = 'h-2 w-2 rounded-full bg-amber-400';
+      } else if (!base) {
+        e.apiConfigLabel.textContent = 'API: 상대경로';
+        e.currentApiDisplay.textContent = '상대경로 (/api)';
+        e.apiStatusDot.className = isConnected
+          ? 'h-2 w-2 rounded-full bg-emerald-500'
+          : 'h-2 w-2 rounded-full bg-rose-500 animate-pulse';
+      } else {
+        try {
+          const host = new URL(base).host;
+          e.apiConfigLabel.textContent = `API: ${host}`;
+        } catch {
+          e.apiConfigLabel.textContent = 'API: 외부서버';
+        }
+        e.currentApiDisplay.textContent = base;
+        e.apiStatusDot.className = isConnected
+          ? 'h-2 w-2 rounded-full bg-emerald-500'
+          : 'h-2 w-2 rounded-full bg-rose-500 animate-pulse';
+      }
+      e.apiBaseUrlInput.value = base;
+    }
+
+    /* ── API 호출 (동적 Base URL 및 GitHub Pages 가상 DB 폴백 지원) ── */
     async function api(url, opts={}) {
+      const fullUrl = buildApiUrl(url);
       const headers = { 'Content-Type':'application/json', ...(opts.headers||{}) };
       if(state.token) headers['Authorization'] = `Bearer ${state.token}`;
-      const res = await fetch(url, { ...opts, headers });
-      const data = await res.json().catch(()=>({}));
-      if(!res.ok) throw new Error(data.error || '오류가 발생했습니다.');
-      return data;
+
+      // GitHub Pages 등에서 별도 API 주소가 지정되지 않은 정적 호스팅 환경인 경우 바로 가상 DB 사용
+      const isStaticPage = window.location.hostname.includes('github.io') && !getApiBaseUrl();
+
+      if (!isStaticPage) {
+        try {
+          const res = await fetch(fullUrl, { ...opts, headers });
+          const data = await res.json().catch(()=>({}));
+          if(!res.ok) throw new Error(data.error || '오류가 발생했습니다.');
+          updateApiStatusUI(true, false);
+          return data;
+        } catch(err) {
+          // 백엔드 연결 실패 시 (서버 꺼짐, CORS 또는 오프라인): 가상 MockDB로 자동 폴백
+          console.warn('[API Fallback] 백엔드 미응답. localStorage 가상 DB로 전환합니다.', err.message);
+          updateApiStatusUI(true, true);
+          return MockDB.handle(url, opts);
+        }
+      } else {
+        updateApiStatusUI(true, true);
+        return MockDB.handle(url, opts);
+      }
     }
 
     /* ── 사이드바 ── */
@@ -597,13 +1219,28 @@
         e.userBadge.classList.remove('hidden'); e.userBadge.classList.add('flex');
         e.logoutBtn.classList.remove('hidden'); e.logoutBtn.classList.add('flex');
         e.userNameText.classList.remove('hidden');
-        e.userNameText.textContent = u.name;
+        e.userNameText.textContent = u.nickname || u.name;
         e.userRolePill.classList.remove('hidden');
         e.userRolePill.textContent = ROLE_LABEL[u.role] || u.role;
         e.userRolePill.className = `rounded-full px-2 py-0.5 text-[11px] font-bold ${ROLE_CLASS[u.role]||'bg-slate-100 text-slate-600'}`;
+
+        // 게시글 작성자 닉네임 자동 연동
+        e.postAuthorInput.value = u.nickname || u.name;
+        e.postAuthorInput.readOnly = true;
+        e.postAuthorInput.classList.add('bg-slate-100', 'text-slate-600');
+        e.authorAutoHint.classList.remove('hidden');
+
+        // 댓글 작성자 닉네임 자동 채우기
+        if (!e.commentAuthorInput.value) {
+          e.commentAuthorInput.value = u.nickname || u.name;
+        }
       } else {
         e.userBadge.classList.add('hidden');  e.userBadge.classList.remove('flex');
         e.logoutBtn.classList.add('hidden');  e.logoutBtn.classList.remove('flex');
+        e.postAuthorInput.value = '';
+        e.postAuthorInput.readOnly = false;
+        e.postAuthorInput.classList.remove('bg-slate-100', 'text-slate-600');
+        e.authorAutoHint.classList.add('hidden');
       }
       // superadmin 전용 UI
       const isSuperAdmin = u?.role === 'superadmin';
@@ -772,14 +1409,17 @@
         e.operatorsList.innerHTML=`<span class="text-xs text-slate-400">지정된 운영자가 없습니다.</span>`;
         return;
       }
-      e.operatorsList.innerHTML = space.operators.map(op=>`
+      e.operatorsList.innerHTML = space.operators.map(op=>{
+        const nick = op.nickname || op.name || op.id;
+        return `
         <div class="flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-2">
-          <div class="flex h-7 w-7 items-center justify-center rounded-full bg-violet-100 text-xs font-bold text-violet-600">${esc(op.name[0])}</div>
+          <div class="flex h-7 w-7 items-center justify-center rounded-full bg-violet-100 text-xs font-bold text-violet-600">${esc(nick[0])}</div>
           <div class="min-w-0">
-            <p class="text-xs font-semibold text-slate-700">${esc(op.name)}</p>
+            <p class="text-xs font-semibold text-slate-700">${esc(nick)}</p>
             <p class="text-[11px] text-slate-400">${esc(op.id)} · ${ROLE_LABEL[op.role]||op.role}</p>
           </div>
-        </div>`).join('');
+        </div>`;
+      }).join('');
     }
 
     // 공간 뷰에서 게시판 클릭 위임
@@ -809,8 +1449,18 @@
       const isOp = space && isSpaceOperatorLocal(space);
       toggleVisible(e.boardDeleteBtn, !!isOp);
 
-      // 로그인한 사용자면 작성자 자동 채우기
-      if(state.user && !e.postAuthorInput.value) e.postAuthorInput.value = state.user.name;
+      // 로그인한 사용자면 작성자 닉네임 자동 채우기
+      if(state.user) {
+        e.postAuthorInput.value = state.user.nickname || state.user.name;
+        e.postAuthorInput.readOnly = true;
+        e.postAuthorInput.classList.add('bg-slate-100', 'text-slate-600');
+        e.authorAutoHint.classList.remove('hidden');
+      } else {
+        e.postAuthorInput.value = '';
+        e.postAuthorInput.readOnly = false;
+        e.postAuthorInput.classList.remove('bg-slate-100', 'text-slate-600');
+        e.authorAutoHint.classList.add('hidden');
+      }
 
       await loadPosts(true);
     }
@@ -905,7 +1555,7 @@
           body:JSON.stringify({ author:e.postAuthorInput.value.trim(), title:e.postTitleInput.value.trim(), content:e.postContentInput.value.trim() })
         });
         e.createPostForm.reset(); e.postContentCount.textContent='0 / 5000';
-        if(state.user) e.postAuthorInput.value=state.user.name;
+        if(state.user) e.postAuthorInput.value = state.user.nickname || state.user.name;
         showToast('게시글이 등록되었습니다.');
         await loadPosts(); await loadSpaces();
       } catch(err){ showToast(err.message,'error'); }
@@ -1050,44 +1700,154 @@
       finally{ e.createCommentBtn.disabled=false; }
     });
 
-    /* ═══════════════ 로그인 / 로그아웃 ═══════════════ */
-    e.loginOpenBtn.addEventListener('click', ()=>{ e.loginForm.reset(); openModal(e.loginModal); setTimeout(()=>e.loginIdInput.focus(),50); });
-    e.loginForm.addEventListener('submit', async ev=>{
-      ev.preventDefault(); e.loginSubmitBtn.disabled=true;
-      try {
-        const { token, user } = await api('/api/auth/login',{ method:'POST', body:JSON.stringify({ id:e.loginIdInput.value.trim(), password:e.loginPasswordInput.value }) });
-        state.token=token; state.user=user;
-        localStorage.setItem('authToken', token);
-        closeModal(e.loginModal); updateAuthUI();
-        // superadmin이면 사용자 목록 로드
-        if(user.role==='superadmin') await loadAllUsers();
-        await loadSpaces();
-        // 자동으로 현재 뷰 갱신
-        if(state.activeSpaceId) { const sp=state.spaces.find(s=>s.id===state.activeSpaceId); if(sp) showSpaceView(); }
-        showToast(`${user.name}님, 환영합니다!`);
-      } catch(err){ showToast(err.message,'error'); }
-      finally{ e.loginSubmitBtn.disabled=false; }
+    /* ═══════════════ 로그인 / 회원가입 제어 ═══════════════ */
+    function switchAuthTab(isSignup) {
+      if (isSignup) {
+        e.authTabSignup.className = 'pb-3 text-sm font-bold border-b-2 border-violet-600 text-violet-600 transition';
+        e.authTabLogin.className = 'pb-3 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-600 transition';
+        e.loginFormContainer.classList.add('hidden');
+        e.signupFormContainer.classList.remove('hidden');
+        setTimeout(() => e.signupIdInput.focus(), 50);
+      } else {
+        e.authTabLogin.className = 'pb-3 text-sm font-bold border-b-2 border-violet-600 text-violet-600 transition';
+        e.authTabSignup.className = 'pb-3 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-600 transition';
+        e.loginFormContainer.classList.remove('hidden');
+        e.signupFormContainer.classList.add('hidden');
+        setTimeout(() => e.loginIdInput.focus(), 50);
+      }
+    }
+
+    e.authTabLogin.addEventListener('click', () => switchAuthTab(false));
+    e.authTabSignup.addEventListener('click', () => switchAuthTab(true));
+    e.switchToSignupBtn.addEventListener('click', () => switchAuthTab(true));
+    e.switchToLoginBtn.addEventListener('click', () => switchAuthTab(false));
+
+    e.loginOpenBtn.addEventListener('click', () => {
+      e.loginForm.reset();
+      e.signupForm.reset();
+      switchAuthTab(false);
+      openModal(e.loginModal);
     });
-    e.logoutBtn.addEventListener('click', async()=>{
-      try { await api('/api/auth/logout',{method:'POST'}); } catch{}
-      state.token=null; state.user=null; state.allUsers=[];
+
+    // 로그인 제출
+    e.loginForm.addEventListener('submit', async ev => {
+      ev.preventDefault();
+      e.loginSubmitBtn.disabled = true;
+      try {
+        const { token, user } = await api('/api/auth/login', {
+          method: 'POST',
+          body: JSON.stringify({ id: e.loginIdInput.value.trim(), password: e.loginPasswordInput.value })
+        });
+        state.token = token;
+        state.user = user;
+        localStorage.setItem('authToken', token);
+        localStorage.setItem('authSession', JSON.stringify(user));
+        closeModal(e.loginModal);
+        updateAuthUI();
+        if (user.role === 'superadmin') await loadAllUsers();
+        await loadSpaces();
+        if (state.activeSpaceId) {
+          const sp = state.spaces.find(s => s.id === state.activeSpaceId);
+          if (sp) showSpaceView();
+        }
+        showToast(`${user.nickname || user.name}님, 환영합니다!`);
+      } catch (err) {
+        alert(err.message);
+        showToast(err.message, 'error');
+      } finally {
+        e.loginSubmitBtn.disabled = false;
+      }
+    });
+
+    // 회원가입 제출 (유효성 검사 및 비밀번호 확인)
+    e.signupForm.addEventListener('submit', async ev => {
+      ev.preventDefault();
+      const id = e.signupIdInput.value.trim();
+      const password = e.signupPasswordInput.value;
+      const confirmPassword = e.signupPasswordConfirmInput.value;
+      const nickname = e.signupNicknameInput.value.trim();
+
+      if (!id) {
+        alert('아이디를 입력해주세요.');
+        return;
+      }
+      if (!password) {
+        alert('비밀번호를 입력해주세요.');
+        return;
+      }
+      // [요구사항 2] 비밀번호 일치 검증 로직
+      if (password !== confirmPassword) {
+        alert('비밀번호가 일치하지 않습니다.');
+        e.signupPasswordConfirmInput.focus();
+        return;
+      }
+      if (!nickname) {
+        alert('닉네임을 입력해주세요.');
+        return;
+      }
+
+      e.signupSubmitBtn.disabled = true;
+      try {
+        const data = await api('/api/auth/register', {
+          method: 'POST',
+          body: JSON.stringify({ id, password, confirmPassword, nickname })
+        });
+        state.token = data.token;
+        state.user = data.user;
+        localStorage.setItem('authToken', data.token);
+        localStorage.setItem('authSession', JSON.stringify(data.user));
+        closeModal(e.loginModal);
+        updateAuthUI();
+        await loadSpaces();
+        alert(`회원가입이 완료되었습니다!\n환영합니다, ${data.user.nickname}님.`);
+        showToast(`${data.user.nickname}님으로 가입되었습니다!`);
+      } catch (err) {
+        alert(err.message);
+        showToast(err.message, 'error');
+      } finally {
+        e.signupSubmitBtn.disabled = false;
+      }
+    });
+
+    // 로그아웃
+    e.logoutBtn.addEventListener('click', async () => {
+      try { await api('/api/auth/logout', { method: 'POST' }); } catch {}
+      state.token = null;
+      state.user = null;
+      state.allUsers = [];
       localStorage.removeItem('authToken');
-      updateAuthUI(); await loadSpaces();
-      if(state.activeSpaceId) { const sp=state.spaces.find(s=>s.id===state.activeSpaceId); if(sp) showSpaceView(); }
+      localStorage.removeItem('authSession');
+      updateAuthUI();
+      await loadSpaces();
+      if (state.activeSpaceId) {
+        const sp = state.spaces.find(s => s.id === state.activeSpaceId);
+        if (sp) showSpaceView();
+      }
       showToast('로그아웃되었습니다.');
     });
 
     async function restoreSession() {
-      if(!state.token) return;
+      if (!state.token) return;
       try {
         state.user = await api('/api/auth/me');
-        if(state.user.role==='superadmin') await loadAllUsers();
-      } catch { state.token=null; state.user=null; localStorage.removeItem('authToken'); }
+        if (state.user.role === 'superadmin') await loadAllUsers();
+      } catch {
+        const saved = localStorage.getItem('authSession');
+        if (saved) {
+          try { state.user = JSON.parse(saved); } catch { state.token = null; state.user = null; }
+        } else {
+          state.token = null; state.user = null;
+        }
+      }
       updateAuthUI();
     }
 
     async function loadAllUsers() {
-      state.allUsers = await api('/api/admin/users');
+      try {
+        state.allUsers = await api('/api/admin/users');
+      } catch {
+        state.allUsers = [];
+      }
     }
 
     /* ═══════════════ 공간 생성 ═══════════════ */
@@ -1182,7 +1942,7 @@
       // 추가 가능한 사용자 목록 (superadmin 제외)
       const nonOperators = state.allUsers.filter(u=>u.role!=='superadmin'&&!space.operatorIds.includes(u.id));
       e.addOperatorSelect.innerHTML = `<option value="">사용자 선택...</option>`
-        + nonOperators.map(u=>`<option value="${esc(u.id)}">${esc(u.name)} (${esc(u.id)}) - ${ROLE_LABEL[u.role]||u.role}</option>`).join('');
+        + nonOperators.map(u=>`<option value="${esc(u.id)}">${esc(u.nickname || u.name)} (${esc(u.id)}) - ${ROLE_LABEL[u.role]||u.role}</option>`).join('');
       openModal(e.manageOpsModal);
     }
 
@@ -1194,7 +1954,7 @@
       e.currentOperatorsList.innerHTML = space.operators.map(op=>`
         <div class="flex items-center justify-between gap-2 rounded-xl bg-slate-50 px-3 py-2">
           <div class="min-w-0">
-            <p class="text-xs font-semibold text-slate-700">${esc(op.name)}</p>
+            <p class="text-xs font-semibold text-slate-700">${esc(op.nickname || op.name)}</p>
             <p class="text-[11px] text-slate-400">${esc(op.id)}</p>
           </div>
           <button type="button" data-remove-op="${esc(op.id)}" class="shrink-0 rounded-lg px-2 py-1 text-[11px] font-semibold text-rose-600 transition hover:bg-rose-50">제거</button>
@@ -1239,6 +1999,7 @@
     /* ─ ESC 키 ─ */
     document.addEventListener('keydown', ev=>{
       if(ev.key!=='Escape') return;
+      if(!e.apiConfigModal.classList.contains('hidden'))  { closeModal(e.apiConfigModal); return; }
       if(!e.confirmModal.classList.contains('hidden'))    { closeModal(e.confirmModal); return; }
       if(!e.postDetailModal.classList.contains('hidden')) { closeModal(e.postDetailModal); return; }
       if(!e.manageOpsModal.classList.contains('hidden'))  { closeModal(e.manageOpsModal); return; }
@@ -1247,8 +2008,46 @@
       if(!e.loginModal.classList.contains('hidden'))      { closeModal(e.loginModal); return; }
     });
 
+    /* ═══════════════ API 서버 주소 설정 ═══════════════ */
+    e.apiConfigBtn.addEventListener('click', () => {
+      e.apiBaseUrlInput.value = getApiBaseUrl();
+      e.currentApiDisplay.textContent = getApiBaseUrl() || '상대경로 (/api)';
+      openModal(e.apiConfigModal);
+      setTimeout(() => e.apiBaseUrlInput.focus(), 50);
+    });
+
+    e.apiConfigForm.addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      const inputVal = e.apiBaseUrlInput.value.trim().replace(/\/+$/, '');
+      if (inputVal && !/^https?:\/\//i.test(inputVal)) {
+        showToast('URL은 http:// 또는 https:// 로 시작해야 합니다.', 'error');
+        return;
+      }
+      setApiBaseUrl(inputVal);
+      closeModal(e.apiConfigModal);
+      showToast('API 서버 주소가 저장되었습니다. 재연결을 시도합니다...');
+      try {
+        await init();
+        showToast('API 서버에 성공적으로 연결되었습니다.');
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    });
+
+    e.resetApiConfigBtn.addEventListener('click', async () => {
+      setApiBaseUrl('');
+      closeModal(e.apiConfigModal);
+      showToast('상대경로(/api)로 초기화되었습니다.');
+      try {
+        await init();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    });
+
     /* ═══════════════ 초기화 ═══════════════ */
     async function init() {
+      updateApiStatusUI();
       await restoreSession();
       await loadSpaces();
       // 첫 공개 공간 자동 선택
